@@ -137,8 +137,8 @@ function renderApp() {
     <header class="header">
       <div class="header-inner">
         <div class="brand">
-          <span class="brand-mark">$</span>
-          <span class="brand-name">coursemap</span>
+          <span class="brand-mark">IU</span>
+          <span class="brand-name">SemPlanner.ai</span>
           <span class="brand-meta">${svgWrap(ICON.hash, 12)}${state.courses.length} courses</span>
         </div>
         <div class="header-right">

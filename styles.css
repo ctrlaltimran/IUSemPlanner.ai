@@ -1015,6 +1015,7 @@ update hero css */
 
 .plan-name {
   font-size: 24px;
+  color: black !important;
   font-weight: 700;
   margin-bottom: 8px;
   position: relative;
@@ -1039,6 +1040,7 @@ update hero css */
 }
 
 .plan-features li {
+  color: black !important;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1271,7 +1273,7 @@ update hero css */
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 3px;
 }
 
 .brand-mark {
