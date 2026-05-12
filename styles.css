@@ -226,6 +226,7 @@
   height: 36px;
   background: var(--border);
 }
+
 .login-pill {
   display: inline-flex;
 }
@@ -247,13 +248,20 @@
   width: 100%;
   height: auto;
   display: block;
-  filter: drop-shadow(0 32px 64px rgba(0,0,0,0.08));
+  filter: drop-shadow(0 32px 64px rgba(0, 0, 0, 0.08));
   animation: hero-float 4s ease-in-out infinite;
 }
 
 @keyframes hero-float {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-12px); }
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
 }
 
 /* Floating tags around the character */
@@ -265,7 +273,7 @@
   padding: 8px 14px;
   font-size: 13px;
   font-weight: 600;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   white-space: nowrap;
   animation: tag-float 3s ease-in-out infinite;
 }
@@ -295,13 +303,21 @@
 }
 
 @keyframes tag-float {
-  0%, 100% { transform: translateY(0) rotate(var(--r, -4deg)); }
-  50%       { transform: translateY(-8px) rotate(var(--r, -4deg)); }
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--r, -4deg));
+  }
+
+  50% {
+    transform: translateY(-8px) rotate(var(--r, -4deg));
+  }
 }
 
 /* Schedule preview — full width, below hero */
 .demo-preview {
-  margin-top: 0;  /* remove any top margin if set, hero-split handles spacing */
+  margin-top: 0;
+  /* remove any top margin if set, hero-split handles spacing */
 }
 
 /* ── Responsive ── */
@@ -321,28 +337,35 @@
   .hero-right {
     order: 1;
   }
+
   .hero-float-tag.t1 {
-  top: 5%;
-  left: -18%;    /* push it further left, above the image notes */
-}
+    top: 5%;
+    left: -18%;
+    /* push it further left, above the image notes */
+  }
 
-.hero-float-tag.t2 {
-  top: 25%;
-  right: -18%;   /* further right */
-}
+  .hero-float-tag.t2 {
+    top: 25%;
+    right: -18%;
+    /* further right */
+  }
 
-.hero-float-tag.t3 {
-  bottom: 8%;
-  left: -12%;    /* bottom left, away from the image */
-}
+  .hero-float-tag.t3 {
+    bottom: 8%;
+    left: -12%;
+    /* bottom left, away from the image */
+  }
 
   .hero-eyebrow {
     margin: 0 auto;
   }
+
   .login-brand {
-  align-items: stretch !important;   /* add this */
-  text-align: left !important;       /* add this */
-}
+    align-items: stretch !important;
+    /* add this */
+    text-align: left !important;
+    /* add this */
+  }
 
   .hero-body {
     text-align: center;
@@ -354,143 +377,177 @@
 
   /* ── Hero fixes ── */
 
-.login-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
+  .login-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
 
-.hero-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 48px;
-  align-items: center;
-  padding: 48px 0 40px;
-  min-height: 500px;
-  width: 100%;
-}
-
-.hero-left {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  align-items: flex-start;
-  text-align: left;
-}
-
-.hero-left .login-pill {
-  margin-bottom: 0;
-}
-
-.hero-headline {
-  text-align: left;
-  font-size: clamp(40px, 5vw, 64px);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1.0;
-  color: var(--text);
-}
-
-.hero-body {
-  text-align: left;
-  max-width: 420px;
-}
-
-.hero-stats {
-  justify-content: flex-start;
-}
-
-.hero-right {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: visible;
-}
-
-.hero-char-wrap {
-  position: relative;
-  width: 100%;
-  max-width: 480px;
-  overflow: visible;
-  padding: 20px 48px;
-}
-
-.demo-preview {
-  width: 100%;
-  max-width: none;
-  margin-top: 0;
-  margin-left: 0;
-  margin-right: 0;
-}
-
-.hero-float-tag.t1 { top: 5%;    left: -12%; }
-.hero-float-tag.t2 { top: 28%;   right: -14%; }
-.hero-float-tag.t3 { bottom: 10%; left: -8%; }
-
-/* Mobile */
-@media (max-width: 900px) {
   .hero-split {
-    grid-template-columns: 1fr;
-    padding: 32px 0 28px;
-    gap: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+    padding: 48px 0 40px;
+    min-height: 500px;
+    width: 100%;
   }
 
   .hero-left {
-    order: 2;
-    align-items: center;
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    align-items: flex-start;
+    text-align: left;
   }
 
-  .hero-right {
-    order: 1;
+  .hero-left .login-pill {
+    margin-bottom: 0;
+  }
+
+  .hero-headline {
+    text-align: left;
+    font-size: clamp(40px, 5vw, 64px);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.0;
+    color: var(--text);
   }
 
   .hero-body {
-    text-align: center;
+    text-align: left;
+    max-width: 420px;
   }
 
   .hero-stats {
-    justify-content: center;
+    justify-content: flex-start;
   }
 
-  .hero-char-wrap {
-    max-width: 300px;
-    margin: 0 auto;
-    padding: 16px 40px;
-  }
-
-  .hero-float-tag.t1 { left: -6%; }
-  .hero-float-tag.t2 { right: -6%; }
-  .hero-float-tag.t3 { left: 0%; }
-}
-
-  .hero-char-wrap {
-    max-width: 300px;
-    margin: 0 auto;
-  }
   .hero-right {
-  overflow: visible;
-}
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: visible;
+  }
 
-.hero-char-wrap {
-  overflow: visible;    /* tags need to bleed outside */
-  padding: 20px 40px;  /* give room for the floating tags */
-}
+  .hero-char-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    overflow: visible;
+    padding: 20px 48px;
+  }
+
+  .demo-preview {
+    width: 100%;
+    max-width: none;
+    margin-top: 0;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .hero-float-tag.t1 {
+    top: 5%;
+    left: -12%;
+  }
+
+  .hero-float-tag.t2 {
+    top: 28%;
+    right: -14%;
+  }
+
+  .hero-float-tag.t3 {
+    bottom: 10%;
+    left: -8%;
+  }
+
+  /* Mobile */
+  @media (max-width: 900px) {
+    .hero-split {
+      grid-template-columns: 1fr;
+      padding: 32px 0 28px;
+      gap: 24px;
+    }
+
+    .hero-left {
+      order: 2;
+      align-items: center;
+      text-align: center;
+    }
+
+    .hero-right {
+      order: 1;
+    }
+
+    .hero-body {
+      text-align: center;
+    }
+
+    .hero-stats {
+      justify-content: center;
+    }
+
+    .hero-char-wrap {
+      max-width: 300px;
+      margin: 0 auto;
+      padding: 16px 40px;
+    }
+
+    .hero-float-tag.t1 {
+      left: -6%;
+    }
+
+    .hero-float-tag.t2 {
+      right: -6%;
+    }
+
+    .hero-float-tag.t3 {
+      left: 0%;
+    }
+  }
+
+  .hero-char-wrap {
+    max-width: 300px;
+    margin: 0 auto;
+  }
+
+  .hero-right {
+    overflow: visible;
+  }
+
+  .hero-char-wrap {
+    overflow: visible;
+    /* tags need to bleed outside */
+    padding: 20px 40px;
+    /* give room for the floating tags */
+  }
+
   .hero-split {
-  padding-top: 24px;           /* reduce from 48px since pill adds spacing */
-  min-height: 480px;           /* slightly shorter looks better */
-}
-.demo-preview {
-  width: 100%;
-  margin-top: 32px;
-  margin-left: 0;
-  margin-right: 0;
-  max-width: none;
-}
+    padding-top: 24px;
+    /* reduce from 48px since pill adds spacing */
+    min-height: 480px;
+    /* slightly shorter looks better */
+  }
 
-  .hero-float-tag.t1 { left: -4%; }
-  .hero-float-tag.t2 { right: -4%; }
-  .hero-float-tag.t3 { left: 2%; }
+  .demo-preview {
+    width: 100%;
+    margin-top: 32px;
+    margin-left: 0;
+    margin-right: 0;
+    max-width: none;
+  }
+
+  .hero-float-tag.t1 {
+    left: -4%;
+  }
+
+  .hero-float-tag.t2 {
+    right: -4%;
+  }
+
+  .hero-float-tag.t3 {
+    left: 2%;
+  }
 }
 
 @media (max-width: 560px) {
@@ -503,7 +560,8 @@
     font-size: 11px;
     padding: 6px 10px;
   }
-  .hero-body{
+
+  .hero-body {
     font-size: 15px !important;
   }
 
@@ -512,8 +570,28 @@
     gap: 12px;
   }
 
-  .hero-stat-divider { display: none; }
+  .hero-stat-divider {
+    display: none;
+  }
 }
+
+
+.hero-split {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+}
+
+.login-cards {
+  position: relative;
+  z-index: 2;
+}
+
+.demo-preview {
+  position: relative;
+  z-index: 2;
+}
+
 
 
 
@@ -779,13 +857,13 @@ textarea {
 /* 
 update hero css */
 
-.updated-hero-section{
+.updated-hero-section {
   display: flex;
-  align-items: center;  
+  align-items: center;
   justify-content: center;
 }
 
-.updated-hero-section .right img{
+.updated-hero-section .right img {
   width: 500px;
   height: auto;
 }

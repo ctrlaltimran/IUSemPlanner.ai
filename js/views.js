@@ -9,14 +9,17 @@ function svgWrap(icon, size) {
 function renderLogin() {
   return `
     <div class="login">
-<div class="login-wrap">
-  <div style="text-align:center;margin-bottom:32px;">
-    <div class="login-pill">v4.0 · IUSemPlanner.ai</div>
-  </div>
-  <div class="hero-split">
-    <div class="hero-left">
+      <div class="login-wrap">
+
+        <div style="text-align:center;margin-bottom:16px;">
+          <div class="login-pill">v4.0 · IUSemPlanner.ai</div>
+        </div>
+
+        <div class="hero-split">
+          <div class="hero-left">
             <h1 class="hero-headline">
-              They make software engineers. Their own software is a
+              They make software engineers.<br>
+              Their own software is a
               <em>JOKE.</em>
             </h1>
             <p class="hero-body">
@@ -24,7 +27,6 @@ function renderLogin() {
               track your GPA, and plan a semester that doesn't break you.
               <b>Built by students of IQRA University, for its students.</b>
             </p>
-           
           </div>
           <div class="hero-right">
             <div class="hero-char-wrap">
@@ -121,6 +123,75 @@ function renderLogin() {
     </div>
   `;
 }
+
+function renderApp() {
+  const isPro = state.user.plan === 'pro';
+  const plannedCount = state.courses.filter(c => c.planned).length;
+  let body = '';
+  if (state.tab === 'progress') body = renderProgress();
+  if (state.tab === 'courses') body = renderCatalog();
+  if (state.tab === 'planner') body = renderPlanner();
+  if (state.tab === 'ai') body = renderAI();
+
+  return `
+    <header class="header">
+      <div class="header-inner">
+        <div class="brand">
+          <span class="brand-mark">$</span>
+          <span class="brand-name">coursemap</span>
+          <span class="brand-meta">${svgWrap(ICON.hash, 12)}${state.courses.length} courses</span>
+        </div>
+        <div class="header-right">
+          <span class="plan-pill ${isPro ? 'pro' : 'free'}">
+            ${svgWrap(isPro ? ICON.crown : ICON.code, 14)}
+            ${isPro ? 'pro demo' : 'free demo'}
+          </span>
+          <button class="icon-btn-hdr" data-action="open-settings" title="Settings">${svgWrap(ICON.settings)}</button>
+          <button class="icon-btn-hdr" data-action="logout" title="Logout">${svgWrap(ICON.logout)}</button>
+        </div>
+      </div>
+    </header>
+    <nav class="tabs">
+      <div class="tabs-inner">
+        ${tabBtn('progress', 'Progress', ICON.trophy)}
+        ${tabBtn('courses', 'Courses', ICON.book)}
+        ${tabBtn('planner', 'Planner', ICON.target, false, plannedCount)}
+        ${tabBtn('ai', 'AI Insights', ICON.brain, true)}
+      </div>
+    </nav>
+    <main>${body}</main>
+    ${state.modal === 'import' ? renderImportModal() : ''}
+    ${state.modal === 'settings' ? renderSettingsModal() : ''}
+    ${state.modal === 'addCustom' ? renderAddCustomModal() : ''}
+  `;
+}
+
+function tabBtn(id, label, icon, isProTab, badgeCount) {
+  const isPro = state.user.plan === 'pro';
+  const active = state.tab === id;
+  let badge = '';
+  if (isProTab && !isPro) badge = `<span style="width:12px;height:12px;display:inline-flex;color:var(--text-faint)">${ICON.lock}</span>`;
+  if (isProTab && isPro) badge = `<span class="pro-badge">PRO</span>`;
+  if (badgeCount > 0) badge = `<span class="count-badge">${badgeCount}</span>`;
+  return `<button class="tab ${active ? 'active' : ''}" data-tab="${id}">${icon}${label}${badge}</button>`;
+}
+
+function emptyView() {
+  return `
+    <div class="container">
+      <div class="empty">
+        <div class="empty-comment">// nothing here yet</div>
+        <h3 class="empty-title">Import your courses to begin</h3>
+        <p class="empty-text">Paste your IULMS course list, upload a text file, or load the sample data — we'll parse everything (semesters, grades, prerequisites, GPA) automatically.</p>
+        <div class="empty-actions">
+          <button class="btn btn-primary" data-action="open-import">${svgWrap(ICON.download)}Import data</button>
+          <button class="btn btn-secondary" data-action="load-sample">${svgWrap(ICON.spark)}Load sample</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderProgress() {
   if (state.courses.length === 0) return emptyView();
   const stats = computeStats(state.courses);
