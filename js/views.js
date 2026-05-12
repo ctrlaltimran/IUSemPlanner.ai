@@ -12,7 +12,7 @@ function renderLogin() {
     <div class="login">
       <div class="login-wrap">
         <div class="login-brand">
-          <div class="login-pill">v4.0 · IUSemPlanner.ai</div>
+          <div class="login-pill">v4.0 · IUSemPlanner.ai Code pushed</div>
           <h1 class="login-title"><span class="dollar">$</span> coursemap</h1>
           <p class="login-sub">Import your IULMS courses. Plan your semester. Stop building schedules that burn you out.</p>
         </div>
