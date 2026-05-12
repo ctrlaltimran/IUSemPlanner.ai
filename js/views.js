@@ -12,7 +12,7 @@ function renderLogin() {
     <div class="login">
       <div class="login-wrap">
         <div class="login-brand">
-          <div class="login-pill">v4.0 · iulms-aware</div>
+          <div class="login-pill">v4.0 · IUSemPlanner.ai</div>
           <h1 class="login-title"><span class="dollar">$</span> coursemap</h1>
           <p class="login-sub">Import your IULMS courses. Plan your semester. Stop building schedules that burn you out.</p>
         </div>
@@ -107,9 +107,9 @@ function renderApp() {
   const plannedCount = state.courses.filter(c => c.planned).length;
   let body = '';
   if (state.tab === 'progress') body = renderProgress();
-  if (state.tab === 'courses')  body = renderCatalog();
-  if (state.tab === 'planner')  body = renderPlanner();
-  if (state.tab === 'ai')       body = renderAI();
+  if (state.tab === 'courses') body = renderCatalog();
+  if (state.tab === 'planner') body = renderPlanner();
+  if (state.tab === 'ai') body = renderAI();
 
   return `
     <header class="header">
@@ -131,16 +131,16 @@ function renderApp() {
     </header>
     <nav class="tabs">
       <div class="tabs-inner">
-        ${tabBtn('progress', 'Progress',    ICON.trophy)}
-        ${tabBtn('courses',  'Courses',     ICON.book)}
-        ${tabBtn('planner',  'Planner',     ICON.target, false, plannedCount)}
-        ${tabBtn('ai',       'AI Insights', ICON.brain, true)}
+        ${tabBtn('progress', 'Progress', ICON.trophy)}
+        ${tabBtn('courses', 'Courses', ICON.book)}
+        ${tabBtn('planner', 'Planner', ICON.target, false, plannedCount)}
+        ${tabBtn('ai', 'AI Insights', ICON.brain, true)}
       </div>
     </nav>
     <main>${body}</main>
-    ${state.modal === 'import'    ? renderImportModal()   : ''}
-    ${state.modal === 'settings'  ? renderSettingsModal() : ''}
-    ${state.modal === 'addCustom' ? renderAddCustomModal(): ''}
+    ${state.modal === 'import' ? renderImportModal() : ''}
+    ${state.modal === 'settings' ? renderSettingsModal() : ''}
+    ${state.modal === 'addCustom' ? renderAddCustomModal() : ''}
   `;
 }
 
@@ -149,8 +149,8 @@ function tabBtn(id, label, icon, isProTab, badgeCount) {
   const active = state.tab === id;
   let badge = '';
   if (isProTab && !isPro) badge = `<span style="width:12px;height:12px;display:inline-flex;color:var(--text-faint)">${ICON.lock}</span>`;
-  if (isProTab && isPro)  badge = `<span class="pro-badge">PRO</span>`;
-  if (badgeCount > 0)     badge = `<span class="count-badge">${badgeCount}</span>`;
+  if (isProTab && isPro) badge = `<span class="pro-badge">PRO</span>`;
+  if (badgeCount > 0) badge = `<span class="count-badge">${badgeCount}</span>`;
   return `<button class="tab ${active ? 'active' : ''}" data-tab="${id}">${icon}${label}${badge}</button>`;
 }
 
@@ -263,12 +263,12 @@ function renderCatalog() {
   if (state.courses.length === 0) return emptyView();
   const stats = computeStats(state.courses);
   const filters = [
-    { key: 'all',         label: 'All',           count: state.courses.length },
-    { key: 'completed',   label: 'Completed',     count: stats.byStatus.completed.length },
-    { key: 'inProgress',  label: 'In Progress',   count: stats.byStatus.inProgress.length },
-    { key: 'locked',      label: 'Locked',        count: stats.byStatus.locked.length },
-    { key: 'notOffered',  label: 'Not Offered',   count: stats.byStatus.notOffered.length },
-    { key: 'elective',    label: 'Elective slots',count: stats.byStatus.elective.length },
+    { key: 'all', label: 'All', count: state.courses.length },
+    { key: 'completed', label: 'Completed', count: stats.byStatus.completed.length },
+    { key: 'inProgress', label: 'In Progress', count: stats.byStatus.inProgress.length },
+    { key: 'locked', label: 'Locked', count: stats.byStatus.locked.length },
+    { key: 'notOffered', label: 'Not Offered', count: stats.byStatus.notOffered.length },
+    { key: 'elective', label: 'Elective slots', count: stats.byStatus.elective.length },
   ];
 
   let list = state.courses;
@@ -353,10 +353,10 @@ function renderPlanner() {
         </div>
         <div class="avail-action">
           ${locked
-            ? `<span class="btn btn-ghost btn-sm" style="cursor:not-allowed">locked</span>`
-            : c.planned
-              ? `<button class="btn btn-secondary btn-sm" data-action="unplan" data-id="${c.id}">remove</button>`
-              : `<button class="btn btn-primary btn-sm" data-action="plan" data-id="${c.id}">${svgWrap(ICON.plus, 12)}Add</button>`}
+        ? `<span class="btn btn-ghost btn-sm" style="cursor:not-allowed">locked</span>`
+        : c.planned
+          ? `<button class="btn btn-secondary btn-sm" data-action="unplan" data-id="${c.id}">remove</button>`
+          : `<button class="btn btn-primary btn-sm" data-action="plan" data-id="${c.id}">${svgWrap(ICON.plus, 12)}Add</button>`}
         </div>
       </div>`).join('');
     return `<div class="avail-group"><div class="avail-group-head"><span>${heading}</span><span>${list.length}</span></div>${rows}</div>`;
@@ -417,8 +417,8 @@ function renderPlanner() {
       </div>
       <div class="planner-panel-body">
         ${planned.length === 0
-          ? `<div style="padding:48px 24px;text-align:center;color:var(--text-muted);font-size:13px">Click <strong>Add</strong> on any course from the left to start planning.</div>`
-          : planItemsHtml}
+      ? `<div style="padding:48px 24px;text-align:center;color:var(--text-muted);font-size:13px">Click <strong>Add</strong> on any course from the left to start planning.</div>`
+      : planItemsHtml}
       </div>
     </div>
   `;
@@ -616,13 +616,13 @@ function renderAI() {
 
   const sumBox = state.ai.loadingSummary ? `<div class="ai-loading"><div class="spinner"></div>analyzing your academic profile...</div>`
     : state.ai.errorSummary ? `<div class="ai-error">${esc(state.ai.errorSummary)}</div>`
-    : state.ai.summary ? `<div class="ai-content">${esc(state.ai.summary)}</div>`
-    : `<div class="ai-placeholder">click "Generate summary" for an AI-written analysis of your progress and plan</div>`;
+      : state.ai.summary ? `<div class="ai-content">${esc(state.ai.summary)}</div>`
+        : `<div class="ai-placeholder">click "Generate summary" for an AI-written analysis of your progress and plan</div>`;
 
   const recBox = state.ai.loadingRecs ? `<div class="ai-loading"><div class="spinner"></div>generating recommendations...</div>`
     : state.ai.errorRecs ? `<div class="ai-error">${esc(state.ai.errorRecs)}</div>`
-    : state.ai.recommendations ? `<div class="ai-content">${esc(state.ai.recommendations)}</div>`
-    : `<div class="ai-placeholder">click "Generate recommendations" for specific advice on next courses</div>`;
+      : state.ai.recommendations ? `<div class="ai-content">${esc(state.ai.recommendations)}</div>`
+        : `<div class="ai-placeholder">click "Generate recommendations" for specific advice on next courses</div>`;
 
   const provider = state.aiSettings.provider;
   const usingOwn = (provider === 'claude' || provider === 'openai') && state.aiSettings.apiKey;
