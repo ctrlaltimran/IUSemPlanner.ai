@@ -1,69 +1,51 @@
-# CourseMap
 
-Smart university course scheduler that imports IULMS data, tracks degree progress, and plans optimal semester schedules.
 
-## How to run
+A university course planning tool that imports IULMS data, tracks academic progress, and helps generate optimized semester schedules.
 
-Just open `index.html` in any modern browser. No build step, no server, no install.
+Getting Started
 
-If you want to test AI features without entering an API key, run it through a local server (any will do):
+Open index.html directly in any modern web browser. No build process, installation, or server setup required.
 
-```
+Optional Local Server (for testing features)
+
+To test advanced features locally, you can run a simple server:
+
 python3 -m http.server 8000
-```
 
-Then open http://localhost:8000
+Then open: http://localhost:8000
 
-## Project structure
-
-```
+Project Structure
 coursemap/
-├── index.html         Entry point
-├── styles.css         All styling
-├── README.md          You are here
+├── index.html         Application entry point
+├── styles.css         Global styles
+├── README.md          Documentation
 └── js/
-    ├── constants.js   Days, grades, icons, sample data
-    ├── parser.js      IULMS text parser + file readers
-    ├── analytics.js   Stats, conflicts, recommendations
-    ├── ai.js          AI provider abstraction (Claude / OpenAI)
+    ├── constants.js   Static data (days, grades, icons)
+    ├── parser.js      IULMS data parsing logic
+    ├── analytics.js   GPA, progress, and scheduling logic
+    ├── ai.js          AI provider integration layer
     ├── views.js       UI rendering functions
-    └── app.js         State management + event handlers
-```
+    └── app.js         Core state management and events
+Core Features
 
-## Features
+Free Features include importing IULMS data via text or file upload, automatic parsing of semesters, courses, grades, and credits, academic progress tracking including GPA and completion stats, course filtering and status management, semester planning with conflict detection, and rule based schedule suggestions.
 
-**Free tier**
-- Paste IULMS text or upload `.txt` file
-- Auto-parse semesters, grades, prerequisites, credit hours
-- Progress dashboard with GPA and credit completion
-- Course catalog with status filters
-- Semester planner with live conflict detection
-- Smart rule-based recommendations
+Advanced Features (API enabled) include image input support for course extraction, AI generated academic summaries, AI based course recommendations, and support for user provided OpenAI or Claude API keys.
 
-**Pro tier**
-- Everything in Free, plus:
-- Image upload (PNG / JPG) → AI vision extracts courses
-- AI-generated progress summary
-- AI course recommendations
-- Bring your own API key (Claude or OpenAI)
+Technology Stack
 
-## Tech
+Pure HTML, CSS, and JavaScript with no frameworks, no external dependencies, and no build tools.
 
-Pure HTML / CSS / JavaScript — no React, no build tools, no dependencies.
+Architecture includes a centralized application state object, full UI re-rendering on state updates, event delegation for interactions, modular file separation by responsibility, and a unified AI request layer.
 
-- Single state object, re-render on change
-- Event delegation (one click listener)
-- AI integration via fetch to Claude / OpenAI APIs
-- Parser uses regex on tab-separated IULMS text
+System Design Notes
 
-## Viva talking points
+State management is handled through a single source of truth using a global state object. Rendering is fully regenerated after each state change. Parsing uses regex and structured splitting for IULMS format handling. Scheduling logic is constraint based for conflict detection and optimization. AI integration is abstracted to support multiple providers through a single interface.
 
-- **Why no framework?** Vanilla JS keeps the project explainable line-by-line and removes build complexity.
-- **State management:** One `state` object holds everything. Any change calls `render()` which rebuilds the DOM from state.
-- **The parser** uses tab-splitting plus regex to handle the IULMS format, including multi-line entries (where prerequisite cells wrap).
-- **Balance score** uses a penalty-based 0-100 scale considering conflicts, gaps, overloaded days, morning-evening traps, and lunch breaks.
-- **AI calls** route through one `callAI()` function that detects which provider to use based on user settings.
+Privacy
 
-## Privacy
+All processing runs locally in the browser by default. External requests occur only when AI features are enabled and explicitly used. No data is stored or transmitted unless required for AI processing.
 
-Everything runs in your browser. No data leaves the page except AI requests (which only happen if you trigger them).
+License
+
+Private or internal project, update as required.
