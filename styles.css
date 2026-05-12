@@ -3271,3 +3271,74 @@ textarea.field {
 .danger {
   color: var(--danger);
 }
+
+
+
+
+
+/* Fix horizontal tabs scrollbar (desktop + mobile) */
+.tabs {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  /* prevent outer scrollbar */
+}
+
+.tabs-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  /* Horizontal scroll only */
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  /* Hide scrollbars */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
+
+  /* Smooth scrolling on mobile */
+  -webkit-overflow-scrolling: touch;
+
+  /* Prevent wrapping */
+  white-space: nowrap;
+}
+
+.tabs-inner::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari */
+}
+
+.tab {
+  position: relative;
+  display: inline-flex;
+  /* important */
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: color .2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  /* prevent shrinking */
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .tabs-inner {
+    padding: 0 12px;
+  }
+
+  .tab {
+    padding: 14px 12px;
+    font-size: 13px;
+  }
+}
