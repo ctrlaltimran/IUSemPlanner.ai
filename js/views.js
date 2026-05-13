@@ -760,7 +760,7 @@ function renderImportModal() {
         <div class="bm-drag-label">Drag this button to your bookmarks bar →</div>
         <a class="bm-button" href="${esc(bmURL)}" draggable="true" onclick="event.preventDefault();alert('Don\\'t click — drag this button up to your bookmarks bar instead!\\n\\nOr right-click → Bookmark this link.');return false;">
           ${svgWrap(ICON.book, 16)}
-          <span>⚡Import from IULMS</span>
+          <span>Import from IULMS</span>
         </a>
         <div class="bm-shortcut-hint">No bookmarks bar visible? Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (Windows) or <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (Mac) to show it.</div>
       </div>
