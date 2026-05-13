@@ -17,10 +17,13 @@ function renderLogin() {
 
         <div class="hero-split">
           <div class="hero-left">
-            <h1 class="hero-headline">
-              They make software engineers.<br>
-              Their own software is a
-              <em>JOKE.</em>
+            <h1 class="hero-headline" style="font-family: 'JetBrains Mono', monospace; font-size: clamp(28px, 4vw, 50px); letter-spacing: -0.02em; line-height: 1.3;">
+              <span style="color: #059669; font-size: 16px; display: block; margin-bottom: 12px; font-weight: 600; letter-spacing: 0;">// expectation vs reality</span>
+              <span style="color: #111827;">Gave IULMS its first</span><br>
+              <span style="color: #6b7280;">update since the</span>
+              <em style="color: #d97706; font-style: normal; font-weight: 800; position: relative; padding: 2px 10px; background: #fffbeb; border-radius: 8px; border: 1px solid #fde68a; display: inline-block; margin-left: 4px; vertical-align: text-bottom;">
+                &lt;DINOSAURS/&gt;
+              </em>
             </h1>
             <p class="hero-body">
               Import your IULMS courses in 10 seconds. Detect clashes,

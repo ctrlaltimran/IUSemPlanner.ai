@@ -121,7 +121,7 @@
 /* ── Hero split layout ── */
 .hero-split {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.3fr 1fr;
   gap: 48px;
   align-items: center;
   padding: 48px 0 32px;
@@ -189,7 +189,7 @@
   font-size: 17px;
   color: var(--text-muted);
   line-height: 1.65;
-  max-width: 420px;
+  max-width: 480px;
 }
 
 /* Stats row */
@@ -1277,14 +1277,16 @@ update hero css */
 
 .brand-mark {
   font-family: var(--font-mono);
-  color: var(--accent);
-  font-weight: 700;
-  font-size: 18px;
+  color: #111827;
+  font-weight: 800;
+  font-size: 20px;
 }
 
 .brand-name {
+  color: #111827;
   font-weight: 700;
   letter-spacing: -.02em;
+  font-family: var(--font-mono);
 }
 
 .brand-meta {

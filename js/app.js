@@ -215,7 +215,7 @@ document.addEventListener('click', (e) => {
 
     case 'open-import':
       state.modal = 'import';
-      state.uploadMode = 'paste';
+      state.uploadMode = 'bookmark';
       state.uploadError = null;
       render();
       break;
