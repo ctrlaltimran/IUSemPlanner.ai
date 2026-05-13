@@ -1,7 +1,7 @@
 /* APP — state, helpers, event handlers, main render entry
    Loaded last so all other modules' globals are available. */
 
-const state = {
+const defaultState = {
   user: null,
   tab: 'progress',
   courses: [],
@@ -17,6 +17,29 @@ const state = {
   showBookmarkCode: false,
   importBanner: null,
 };
+
+// Load saved data from browser storage
+let savedState = {};
+try {
+  const stored = localStorage.getItem('iusp_data');
+  if (stored) savedState = JSON.parse(stored);
+} catch (e) { }
+
+const state = { ...defaultState, ...savedState };
+// Reset UI-only states on reload so modals don't get stuck open
+state.modal = null;
+state.uploadProcessing = false;
+
+// Helper function to auto-save to browser storage
+function saveLocal() {
+  try {
+    localStorage.setItem('iusp_data', JSON.stringify({
+      user: state.user,
+      courses: state.courses,
+      aiSettings: state.aiSettings
+    }));
+  } catch (e) { }
+}
 
 function $(id) { return document.getElementById(id); }
 
@@ -50,6 +73,7 @@ function fmtDur(mins) {
 }
 
 function render() {
+  saveLocal();
   $('app').innerHTML = state.user === null ? renderLogin() : renderApp();
 
   if (state._focusSearch) {
@@ -114,7 +138,7 @@ document.addEventListener('click', (e) => {
   const loginBtn = e.target.closest('[data-login]');
   if (loginBtn) {
     state.user = { plan: loginBtn.dataset.login };
-    state.courses = [];
+
     state.tab = 'progress';
     render();
     return;
@@ -123,7 +147,7 @@ document.addEventListener('click', (e) => {
   const loginAndBtn = e.target.closest('[data-login-and]');
   if (loginAndBtn) {
     state.user = { plan: 'free' };
-    state.courses = [];
+
     state.tab = 'progress';
     state.modal = 'import';
     state.uploadMode = 'bookmark';
@@ -183,7 +207,7 @@ document.addEventListener('click', (e) => {
   switch (action) {
     case 'logout':
       state.user = null;
-      state.courses = [];
+
       state.tab = 'progress';
       state.ai = { summary: null, recommendations: null, loadingSummary: false, loadingRecs: false, errorSummary: null, errorRecs: null };
       render();
