@@ -89,7 +89,7 @@ function renderLogin() {
         <div class="login-cards">
           <button class="plan-card" data-login="free">
             <div class="plan-head">
-              <span class="plan-tag">demo / free</span>
+              <span class="plan-tag">Free Plan</span>
               ${svgWrap(ICON.code, 20)}
             </div>
             <div class="plan-name">Free Student</div>
@@ -105,7 +105,7 @@ function renderLogin() {
           </button>
           <button class="plan-card pro" data-login="pro">
             <div class="plan-head">
-              <span class="plan-tag">demo / pro</span>
+              <span class="plan-tag">Pro Plan</span>
               <span style="width:20px;height:20px;color:#34d399">${ICON.crown}</span>
             </div>
             <div class="plan-name">Pro Student</div>
@@ -173,7 +173,7 @@ function renderApp() {
         <div class="header-right">
           <span class="plan-pill ${isPro ? 'pro' : 'free'}">
             ${svgWrap(isPro ? ICON.crown : ICON.code, 14)}
-            ${isPro ? 'pro demo' : 'free demo'}
+            ${isPro ? 'Pro' : 'Free'}
           </span>
           <button class="icon-btn-hdr" data-action="open-settings" title="Settings">${svgWrap(ICON.settings)}</button>
           <button class="icon-btn-hdr" data-action="logout" title="Logout">${svgWrap(ICON.logout)}</button>
@@ -665,7 +665,7 @@ function renderAI() {
             <div>schedule optimization</div>
             <div>elective suggestions</div>
           </div>
-          <button class="btn btn-accent" data-action="logout" style="position:relative">${svgWrap(ICON.refresh)}Switch to Pro demo</button>
+          <button class="btn btn-accent" data-action="logout" style="position:relative">${svgWrap(ICON.refresh)}Switch to Pro</button>
         </div>
       </div>`;
   }
@@ -685,7 +685,7 @@ function renderAI() {
   const usingOwn = (provider === 'claude' || provider === 'openai') && state.aiSettings.apiKey;
   const apiMeta = usingOwn
     ? `using your ${provider} key · max ${state.aiSettings.maxTokens} tokens`
-    : `using demo key · max ${state.aiSettings.maxTokens} tokens`;
+    : `using default key · max ${state.aiSettings.maxTokens} tokens`;
 
   return `
     <div class="container">
@@ -937,7 +937,7 @@ function renderSettingsModal() {
       <div class="settings-row">
         <label>provider</label>
         <select class="field" data-setting="provider">
-          <option value="default" ${s.provider === 'default' ? 'selected' : ''}>Demo key (built-in)</option>
+          <option value="default" ${s.provider === 'default' ? 'selected' : ''}>Default key (built-in)</option>
           <option value="claude" ${s.provider === 'claude' ? 'selected' : ''}>Claude (Anthropic)</option>
           <option value="openai" ${s.provider === 'openai' ? 'selected' : ''}>OpenAI</option>
         </select>
@@ -965,7 +965,7 @@ function renderSettingsModal() {
         <div class="modal-body">
           <div class="note">
             <div class="note-tag">// account</div>
-            <p>Plan: <strong>${isPro ? 'Pro demo' : 'Free demo'}</strong></p>
+            <p>Plan: <strong>${isPro ? 'Pro' : 'Free'}</strong></p>
             <p style="margin-top:4px">Courses: <strong>${state.courses.length}</strong> · Planned: <strong>${state.courses.filter(c => c.planned).length}</strong></p>
           </div>
 
