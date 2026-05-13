@@ -1,5 +1,5 @@
 /* AI PROVIDER ABSTRACTION
-   Routes AI requests through Claude, OpenAI, or the demo built-in key
+   Routes AI requests through Claude, OpenAI, or the default built-in key
    based on the user's settings. Supports text prompts and image analysis. */
 
 async function callAI(prompt) {
