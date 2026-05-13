@@ -184,10 +184,10 @@ function renderApp() {
       </div>
     </nav>
     ${state.importBanner ? `
-      <div class="import-banner ${state.importBanner.type}">
-        <span>${state.importBanner.type === 'success' ? ICON.check : ICON.warning}</span>
+      <div class="import-banner ${state.importBanner.type}" style="position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 9999; box-shadow: 0 8px 24px rgba(0,0,0,0.2); margin: 0; width: fit-content; min-width: 320px;">
+        <span style="display:flex; align-items:center;">${state.importBanner.type === 'success' ? ICON.check : ICON.warning}</span>
         <span>${esc(state.importBanner.text)}</span>
-        <button class="icon-btn-hdr" data-action="dismiss-banner" style="margin-left:auto">${svgWrap(ICON.close, 14)}</button>
+        <button class="icon-btn-hdr" data-action="dismiss-banner" style="margin-left:auto; cursor:pointer;">${svgWrap(ICON.close, 14)}</button>
       </div>` : ''}
     <main>${body}</main>
     ${state.modal === 'import' ? renderImportModal() : ''}
