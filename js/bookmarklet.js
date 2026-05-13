@@ -54,12 +54,9 @@ const BOOKMARKLET_SOURCE = `(function(){
 })();`;
 
 function buildBookmarkletURL() {
-  let code = BOOKMARKLET_SOURCE
-    .replace(/(^|[^:])\/\/[^\n]*/g, '$1')
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\s+/g, ' ')
-    .replace(/\s*([{}();,])\s*/g, '$1')
-    .trim();
+  // Removed aggressive regex minification that could cause unexpected syntax errors
+  // in modern browsers. encodeURIComponent safely handles newlines and spaces.
+  let code = BOOKMARKLET_SOURCE.trim();
   return 'javascript:' + encodeURIComponent(code);
 }
 
