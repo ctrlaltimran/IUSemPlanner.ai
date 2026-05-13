@@ -45,6 +45,49 @@
       }
     }
     </script>
+
+    <meta property="og:image" content="https://ctrlaltimran.com/IUSemPlanner/media/iui.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="IUSemPlanner.ai — IULMS Course Planner">
+    <meta name="twitter:description" content="One-click import from IULMS. Track GPA, detect clashes, plan semesters for Iqra University.">
+    <meta name="twitter:image" content="https://ctrlaltimran.com/IUSemPlanner/media/iui.png">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+    <meta name="author" content="Imran Murtaza (CtrlAltImran)">
+    <link rel="canonical" href="https://ctrlaltimran.com/IUSemPlanner/">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is IUSemPlanner.ai?",
+          "acceptedAnswer": { "@type": "Answer", "text": "IUSemPlanner.ai is a free semester planning tool for Iqra University students. It imports your IULMS course list with one click using a browser bookmark, then helps you detect schedule clashes, track GPA, and plan your remaining semesters." }
+        },
+        {
+          "@type": "Question",
+          "name": "How does the IULMS bookmark import work?",
+          "acceptedAnswer": { "@type": "Answer", "text": "You save a small bookmark (called a bookmarklet) to your browser. Then while logged in to IULMS, you click the bookmark and it automatically reads your entire course list — all 8 semesters, grades, prerequisites — and redirects you to IUSemPlanner.ai with everything filled in." }
+        },
+        {
+          "@type": "Question",
+          "name": "Is IUSemPlanner free?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes, the core features — IULMS bookmark import, GPA tracker, clash detection, semester planner — are completely free. A Pro tier adds AI-generated insights using your own API key or a paid plan." }
+        },
+        {
+          "@type": "Question",
+          "name": "Does IUSemPlanner store my IULMS password?",
+          "acceptedAnswer": { "@type": "Answer", "text": "No. IUSemPlanner never sees or stores your IULMS credentials. The bookmark only runs on the IULMS page after you're already logged in, reads the visible course data, and sends just that data to IUSemPlanner — no passwords involved." }
+        },
+        {
+          "@type": "Question",
+          "name": "Who built IUSemPlanner?",
+          "acceptedAnswer": { "@type": "Answer", "text": "IUSemPlanner.ai was built by Imran Murtaza (CtrlAltImran), a Software Engineering student at Iqra University, for fellow IU students." }
+        }
+      ]
+    }
+    </script>
 </head>
 
 <body>
@@ -77,6 +120,7 @@
 
     <script src="js/constants.js"></script>
     <script src="js/parser.js"></script>
+    <script src="js/bookmarklet.js"></script>
     <script src="js/analytics.js"></script>
     <script src="js/ai.js"></script>
     <script src="js/views.js"></script>

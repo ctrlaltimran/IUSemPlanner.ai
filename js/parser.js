@@ -169,3 +169,105 @@ function fileToBase64(file) {
     reader.readAsDataURL(file);
   });
 }
+
+/* ── Bookmarklet JSON parser ──
+   Converts the JSON payload from the bookmarklet (which captures IULMS tables)
+   into the same tab-separated format that parseIULMS() understands. */
+
+function parseIULMSBookmarkData(payload) {
+  let decoded;
+  // Try base64 decode first; fallback to using payload as-is
+  try {
+    if (/^[A-Za-z0-9+/=]+$/.test(payload.trim())) {
+      decoded = decodeURIComponent(escape(atob(payload)));
+    } else {
+      decoded = payload;
+    }
+  } catch (e) {
+    throw new Error('Bookmark data could not be decoded.');
+  }
+
+  // Format A: plain IULMS-style text (from latest bookmarklet)
+  // Detect by checking for "Semester - N" header anywhere in decoded text
+  if (/^\s*Semester\s*-\s*\d/im.test(decoded)) {
+    const courses = parseIULMS(decoded);
+    if (courses.length === 0) {
+      throw new Error('No courses found in bookmark data.');
+    }
+    return courses;
+  }
+
+  // Format B: legacy JSON dump (kept for backwards compatibility)
+  let data;
+  try {
+    data = JSON.parse(decoded);
+  } catch (e) {
+    throw new Error('Bookmark data is corrupted or not in the expected format.');
+  }
+
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error('Bookmark data is empty.');
+  }
+
+  // Group by table index
+  const tables = {};
+  for (const row of data) {
+    if (row.table == null) continue;
+    if (!tables[row.table]) tables[row.table] = [];
+    tables[row.table][row.row] = row.cells || [];
+  }
+
+  // Build IULMS-style text by walking semester tables
+  let text = '';
+  const keys = Object.keys(tables).map(Number).sort((a, b) => a - b);
+  let foundSemester = false;
+
+  for (const tk of keys) {
+    const tableRows = tables[tk];
+    if (!tableRows || tableRows.length === 0) continue;
+
+    const headerCell = (tableRows[0] && tableRows[0][0]) || '';
+    const isSemHeader = /^Semester\s*-\s*\d/i.test(headerCell);
+    const isElectiveHeader = /^Electives/i.test(headerCell);
+    if (!isSemHeader && !isElectiveHeader) continue;
+
+    foundSemester = true;
+    text += headerCell + '\n';
+
+    // The IULMS semester table contains ONE big row whose cells[0] holds the
+    // entire tab-separated course list. If we find that, use it and stop —
+    // otherwise subsequent rows would re-introduce the same courses as duplicates.
+    let consumedBlob = false;
+    for (let i = 1; i < tableRows.length; i++) {
+      const cells = tableRows[i];
+      if (!cells || cells.length === 0) continue;
+
+      if (cells[0] && (cells[0].indexOf('\t') !== -1 || cells[0].indexOf('\n') !== -1)) {
+        text += cells[0] + '\n';
+        consumedBlob = true;
+        break;
+      }
+    }
+
+    // Fallback: no blob found, join individual cell rows.
+    if (!consumedBlob) {
+      for (let i = 1; i < tableRows.length; i++) {
+        const cells = tableRows[i];
+        if (!cells || cells.length === 0) continue;
+        text += cells.join('\t') + '\n';
+      }
+    }
+  }
+
+  if (!foundSemester) {
+    throw new Error('No semester data found. Make sure you clicked the bookmark on the IULMS SIC course page.');
+  }
+
+  // IULMS uses <br> tags inside course rows when a prerequisite is present,
+  // which innerText converts to '\n'. This creates spurious newlines that
+  // break the row in two. Heal these: if a line break is followed by tab+digit
+  // (the credit hours column), merge it back into the previous line.
+  text = text.replace(/\n\t(\d+)\t/g, '\t$1\t');
+
+  return parseIULMS(text);
+}

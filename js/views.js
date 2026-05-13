@@ -59,6 +59,30 @@ function renderLogin() {
           </div>
         </div>
 
+        <div class="bm-promo">
+          <div class="bm-promo-left">
+            <div class="bm-promo-badge">${svgWrap(ICON.zap, 12)} NEW · Fastest way</div>
+            <div class="bm-promo-title">One-click import from IULMS</div>
+            <div class="bm-promo-sub">Skip the copy-paste. Drag a bookmark, click it on IULMS, and your full transcript loads here instantly — semesters, grades, credits, schedule.</div>
+            <div class="bm-promo-actions">
+              <button class="btn btn-accent" data-login-and="open-import">${svgWrap(ICON.book, 14)} Set up bookmark</button>
+              <span class="bm-promo-hint">takes 10 seconds · works in Chrome, Firefox, Edge, Safari</span>
+            </div>
+          </div>
+          <div class="bm-promo-right">
+            <div class="bm-promo-window">
+              <div class="bm-promo-dots"><span></span><span></span><span></span></div>
+              <div class="bm-promo-bar"><div class="bm-promo-bm">${svgWrap(ICON.book, 10)} Import from IULMS</div></div>
+              <div class="bm-promo-body">
+                <div class="bm-promo-line"><span class="m">SEN101</span> Applied Physics <span class="g">B+</span></div>
+                <div class="bm-promo-line"><span class="m">SEN102</span> Calculus <span class="g">B+</span></div>
+                <div class="bm-promo-line"><span class="m">HUM111</span> Functional English <span class="g">B</span></div>
+                <div class="bm-promo-line dim">+ 90 more courses…</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="login-cards">
           <button class="plan-card" data-login="free">
             <div class="plan-head">
@@ -159,6 +183,12 @@ function renderApp() {
         ${tabBtn('ai', 'AI Insights', ICON.brain, true)}
       </div>
     </nav>
+    ${state.importBanner ? `
+      <div class="import-banner ${state.importBanner.type}">
+        <span>${state.importBanner.type === 'success' ? ICON.check : ICON.warning}</span>
+        <span>${esc(state.importBanner.text)}</span>
+        <button class="icon-btn-hdr" data-action="dismiss-banner" style="margin-left:auto">${svgWrap(ICON.close, 14)}</button>
+      </div>` : ''}
     <main>${body}</main>
     ${state.modal === 'import' ? renderImportModal() : ''}
     ${state.modal === 'settings' ? renderSettingsModal() : ''}
@@ -687,10 +717,13 @@ function renderAI() {
 
 function renderImportModal() {
   const isPro = state.user.plan === 'pro';
-  const mode = state.uploadMode || 'paste';
+  const mode = state.uploadMode || 'bookmark';
+  const isMobile = isMobileDevice();
+  const bmURL = buildBookmarkletURL();
 
   const tabs = `
     <div class="upload-tabs">
+      <button class="upload-tab ${mode === 'bookmark' ? 'active' : ''}" data-upload-mode="bookmark">${svgWrap(ICON.zap, 14)}Bookmark <span class="reco-tag">RECOMMENDED</span></button>
       <button class="upload-tab ${mode === 'paste' ? 'active' : ''}" data-upload-mode="paste">${svgWrap(ICON.file, 14)}Paste text</button>
       <button class="upload-tab ${mode === 'file' ? 'active' : ''}" data-upload-mode="file">${svgWrap(ICON.download, 14)}Upload .txt file</button>
       <button class="upload-tab ${mode === 'image' ? 'active' : ''} ${!isPro ? 'locked' : ''}" data-upload-mode="image">
@@ -701,7 +734,109 @@ function renderImportModal() {
   `;
 
   let modeBody = '';
-  if (mode === 'paste') {
+
+  if (mode === 'bookmark') {
+    const mobileWarning = isMobile ? `
+      <div class="alert alert-warn" style="margin-bottom:16px">${ICON.warning}
+        <div>
+          <div class="alert-title">You're on mobile</div>
+          <div class="alert-body">The bookmark method works best on a <strong>desktop or laptop browser</strong>. Mobile browsers have limited bookmark support. We've shown both desktop and mobile instructions below.</div>
+        </div>
+      </div>
+    ` : '';
+
+    modeBody = `
+      ${mobileWarning}
+
+      <div class="bm-hero">
+        <div class="bm-hero-icon">${svgWrap(ICON.zap, 22)}</div>
+        <div class="bm-hero-text">
+          <div class="bm-hero-title">One-click IULMS import</div>
+          <div class="bm-hero-sub">Save the bookmark below, then open IULMS and click it. Your full course list — semesters, grades, credits, schedule (when registration is open) — imports automatically.</div>
+        </div>
+      </div>
+
+      <div class="bm-drag-zone">
+        <div class="bm-drag-label">Drag this button to your bookmarks bar →</div>
+        <a class="bm-button" href="${esc(bmURL)}" draggable="true" onclick="event.preventDefault();alert('Don\\'t click — drag this button up to your bookmarks bar instead!\\n\\nOr right-click → Bookmark this link.');return false;">
+          ${svgWrap(ICON.book, 16)}
+          <span>Import from IULMS</span>
+        </a>
+        <div class="bm-shortcut-hint">No bookmarks bar visible? Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (Windows) or <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (Mac) to show it.</div>
+      </div>
+
+      <div class="bm-steps-tabs">
+        <button class="bm-steps-tab ${!isMobile ? 'active' : ''}" data-bm-platform="desktop">${svgWrap(ICON.code, 12)} Desktop steps</button>
+        <button class="bm-steps-tab ${isMobile ? 'active' : ''}" data-bm-platform="mobile">${svgWrap(ICON.image, 12)} Mobile steps</button>
+      </div>
+
+      <div class="bm-steps ${isMobile ? 'mobile' : 'desktop'}">
+        <div class="bm-step">
+          <div class="bm-step-num">1</div>
+          <div class="bm-step-body">
+            <div class="bm-step-title">Save the bookmark</div>
+            <div class="bm-step-desc bm-desc-desktop">Drag the green button above onto your browser's bookmarks bar. Or right-click the button → "Bookmark this link…"</div>
+            <div class="bm-step-desc bm-desc-mobile">On mobile, this is tricky. Tap the green button → "Share" → "Add to Bookmarks" / "Add to Home Screen". Honestly, switch to a desktop browser if you can.</div>
+            <div class="bm-step-visual bm-step-visual-desktop">
+              <div class="bm-anim-browser">
+                <div class="bm-anim-dots"><span></span><span></span><span></span></div>
+                <div class="bm-anim-bar">
+                  <div class="bm-anim-bookmark">${svgWrap(ICON.book, 10)} Import from IULMS</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bm-step">
+          <div class="bm-step-num">2</div>
+          <div class="bm-step-body">
+            <div class="bm-step-title">Open your IULMS course page</div>
+            <div class="bm-step-desc">Go to <span class="mono">lms.iuk.edu.pk</span>, log in, and open the page that shows your full course list with all 8 semesters (Student Information Center → Courses).</div>
+            <div class="bm-step-visual">
+              <div class="bm-anim-lms">
+                <div class="bm-anim-lms-head">IULMS / Student Information Center</div>
+                <div class="bm-anim-lms-table">
+                  <div class="bm-anim-lms-row"><span>SEN101</span><span>Applied Physics</span><span class="pill">B+</span></div>
+                  <div class="bm-anim-lms-row"><span>SEN102</span><span>Calculus</span><span class="pill">B+</span></div>
+                  <div class="bm-anim-lms-row"><span>HUM111</span><span>Functional English</span><span class="pill">B</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bm-step">
+          <div class="bm-step-num">3</div>
+          <div class="bm-step-body">
+            <div class="bm-step-title">Click the bookmark</div>
+            <div class="bm-step-desc">With the IULMS course page open, click the "Import from IULMS" bookmark on your bookmarks bar. It will read your courses and redirect you back here with everything filled in.</div>
+            <div class="bm-step-visual">
+              <div class="bm-anim-flow">
+                <div class="bm-anim-flow-card iulms">IULMS</div>
+                <div class="bm-anim-flow-arrow">${svgWrap(ICON.arrow, 18)}</div>
+                <div class="bm-anim-flow-card us">IUSemPlanner</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bm-footer-actions">
+        <button class="btn btn-ghost" data-action="show-bookmark-code">${svgWrap(ICON.code, 14)}Show raw code</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-ghost" data-action="close-modal">Done</button>
+      </div>
+
+      ${state.showBookmarkCode ? `
+      <div class="bm-code-block">
+        <div class="bm-code-head"><span class="mono">bookmarklet source</span><button class="btn btn-sm btn-secondary" data-action="copy-bookmark-code">${svgWrap(ICON.download, 12)}Copy</button></div>
+        <textarea readonly id="bookmarkCodeArea" class="field field-mono" rows="4">${esc(bmURL)}</textarea>
+        <div class="bm-code-hint">Advanced: copy this and paste it as the URL of a new bookmark you create manually.</div>
+      </div>
+      ` : ''}
+    `;
+  } else if (mode === 'paste') {
     modeBody = `
       <div class="row">
         <div>
@@ -769,10 +904,6 @@ function renderImportModal() {
           <button class="icon-btn-hdr" data-action="close-modal">${svgWrap(ICON.close)}</button>
         </div>
         <div class="modal-body">
-          <div class="note">
-            <div class="note-tag">// how to import</div>
-            <p>Choose your method below. Recognizes "Already cleared", "In Progress", "Course not Offered", "Pre Requisite not cleared". Extracts grades, computes GPA, tracks prerequisites.</p>
-          </div>
           ${tabs}
           ${modeBody}
         </div>
@@ -780,6 +911,7 @@ function renderImportModal() {
     </div>
   `;
 }
+
 
 function renderSettingsModal() {
   const isPro = state.user.plan === 'pro';

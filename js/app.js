@@ -9,11 +9,13 @@ const state = {
   search: '',
   modal: null,
   newCourse: null,
-  uploadMode: 'paste',
+  uploadMode: 'bookmark',
   uploadProcessing: false,
   uploadError: null,
   aiSettings: { provider: 'default', apiKey: '', maxTokens: 1200 },
   ai: { summary: null, recommendations: null, loadingSummary: false, loadingRecs: false, errorSummary: null, errorRecs: null },
+  showBookmarkCode: false,
+  importBanner: null,
 };
 
 function $(id) { return document.getElementById(id); }
@@ -118,6 +120,17 @@ document.addEventListener('click', (e) => {
     return;
   }
 
+  const loginAndBtn = e.target.closest('[data-login-and]');
+  if (loginAndBtn) {
+    state.user = { plan: 'free' };
+    state.courses = [];
+    state.tab = 'progress';
+    state.modal = 'import';
+    state.uploadMode = 'bookmark';
+    render();
+    return;
+  }
+
   const tabBtnEl = e.target.closest('[data-tab]');
   if (tabBtnEl) {
     state.tab = tabBtnEl.dataset.tab;
@@ -137,7 +150,20 @@ document.addEventListener('click', (e) => {
     if (uploadModeBtn.classList.contains('locked')) return;
     state.uploadMode = uploadModeBtn.dataset.uploadMode;
     state.uploadError = null;
+    state.showBookmarkCode = false;
     render();
+    return;
+  }
+
+  const bmPlatformBtn = e.target.closest('[data-bm-platform]');
+  if (bmPlatformBtn) {
+    const stepsEl = document.querySelector('.bm-steps');
+    if (stepsEl) {
+      stepsEl.classList.remove('desktop', 'mobile');
+      stepsEl.classList.add(bmPlatformBtn.dataset.bmPlatform);
+    }
+    document.querySelectorAll('.bm-steps-tab').forEach(t => t.classList.remove('active'));
+    bmPlatformBtn.classList.add('active');
     return;
   }
 
@@ -311,9 +337,33 @@ document.addEventListener('click', (e) => {
       generateAISummary();
       break;
 
+    case 'dismiss-banner':
+      state.importBanner = null;
+      render();
+      break;
+
     case 'gen-recs':
       generateAIRecommendations();
       break;
+    case 'show-bookmark-code':
+      state.showBookmarkCode = !state.showBookmarkCode;
+      render();
+      break;
+
+    case 'copy-bookmark-code':
+      const ta = document.getElementById('bookmarkCodeArea');
+      if (ta) {
+        ta.select();
+        try {
+          navigator.clipboard.writeText(ta.value);
+          alert('Bookmarklet URL copied to clipboard!\n\nCreate a new bookmark and paste it as the URL.');
+        } catch (e) {
+          document.execCommand('copy');
+          alert('Copied!');
+        }
+      }
+      break;
+
   }
 });
 
@@ -391,4 +441,35 @@ document.addEventListener('input', (e) => {
   }
 });
 
+/* URL parameter handler — auto-import from bookmarklet redirect */
+function checkURLImport() {
+  const url = new URL(window.location.href);
+  const importData = url.searchParams.get('import');
+  if (!importData) return false;
+
+  // Remove the param from URL so reload doesn't re-import
+  url.searchParams.delete('import');
+  window.history.replaceState({}, '', url.toString());
+
+  try {
+    const courses = parseIULMSBookmarkData(importData);
+    if (courses.length === 0) {
+      state.importBanner = { type: 'error', text: 'Bookmark data was empty. Try clicking the bookmark again on your IULMS course page.' };
+      return false;
+    }
+    state.courses = courses;
+    state.user = { plan: 'free' };
+    state.tab = 'progress';
+    state.importBanner = { type: 'success', text: `Successfully imported ${courses.length} courses from IULMS.` };
+    // Auto-dismiss banner after 5 seconds
+    setTimeout(() => { state.importBanner = null; render(); }, 5000);
+    return true;
+  } catch (e) {
+    state.importBanner = { type: 'error', text: 'Could not import bookmark data: ' + e.message };
+    return false;
+  }
+}
+
+
+checkURLImport();
 render();
