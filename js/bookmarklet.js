@@ -1,12 +1,11 @@
 /* BOOKMARKLET
    Generates the javascript: URL that users save as a bookmark.
-   When clicked on the IULMS page, it scrapes course data, builds a compact
-   IULMS-style text payload, and redirects to IUSemPlanner.ai. */
+   When clicked on the IULMS page, scrapes course data and redirects to IUSemPlanner.ai.
+   IMPORTANT: BOOKMARKLET_SOURCE below must contain NO `//` line comments —
+   they would survive minification and swallow the rest of the code into a comment. */
 
 const BOOKMARKLET_TARGET = 'https://ctrlaltimran.com/IUSemPlanner/';
 
-// Source kept readable here. It runs INSIDE the IULMS page so it must be
-// self-contained — no references to our app code.
 const BOOKMARKLET_SOURCE = `(function(){
   try {
     var TARGET = '${BOOKMARKLET_TARGET}';
@@ -27,7 +26,6 @@ const BOOKMARKLET_SOURCE = `(function(){
       for (var i = 1; i < rows.length; i++) {
         var rowText = (rows[i].innerText || rows[i].textContent || '').trim();
         if (!rowText) continue;
-        // Heal IULMS <br> tags that split a single course row in two
         rowText = rowText.replace(/\\n\\t?(\\d+)\\t/g, '\\t$1\\t');
         rowText = rowText.replace(/\\n([A-Z]{2,5}[-\\s]?\\d{2,4}(?:-L)?\\t)/g, '\\n$1');
         var parts = rowText.split('\\n');
@@ -38,7 +36,7 @@ const BOOKMARKLET_SOURCE = `(function(){
       }
     });
     if (lines.length === 0) {
-      alert('IUSemPlanner\\n\\nNo IULMS semester data found on this page.\\n\\nMake sure you are on the SIC course list page (with all 8 semesters visible).');
+      alert('IUSemPlanner\\n\\nNo IULMS semester data found on this page.\\n\\nMake sure you are on the SIC course list page with all 8 semesters visible.');
       return;
     }
     var text = lines.join('\\n');
@@ -57,6 +55,8 @@ const BOOKMARKLET_SOURCE = `(function(){
 
 function buildBookmarkletURL() {
   let code = BOOKMARKLET_SOURCE
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/\s+/g, ' ')
     .replace(/\s*([{}();,])\s*/g, '$1')
     .trim();
