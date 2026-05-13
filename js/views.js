@@ -145,6 +145,8 @@ function renderLogin() {
         </div>
 
         <p class="login-footer">// no signup, no database — your data stays in this browser tab</p>
+        <p class="login-footer">// Built for the Web Engineering course by Sir Muhammad Farhan,</p>
+        <p class="login-footer">// Developed by Syed Imran Murtaza (65196) and M. Raza (63234).</p>
 
       </div>
     </div>
