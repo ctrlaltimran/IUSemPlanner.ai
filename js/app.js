@@ -445,38 +445,38 @@ document.addEventListener('input', (e) => {
 function checkURLImport() {
   const url = new URL(window.location.href);
 
-  // Try getting it from the query string first (for backwards compatibility)
+  // 1. Extract data from either query or hash
   let importData = url.searchParams.get('import');
-
-  // If not in query string, check the hash fragment (The new bypass method)
-  if (!importData && url.hash.startsWith('#import=')) {
-    importData = url.hash.substring(8); // Extract everything after '#import='
+  if (!importData && window.location.hash.startsWith('#import=')) {
+    importData = window.location.hash.substring(8);
   }
 
   if (!importData) return false;
 
-  // Clean up the URL so a page reload doesn't trigger a re-import
-  url.searchParams.delete('import');
-  if (url.hash.startsWith('#import=')) {
-    url.hash = '';
-  }
-  window.history.replaceState({}, '', url.toString());
+  // 2. CLEAN THE URL IMMEDIATELY (This makes the big messy string vanish)
+  window.history.replaceState({}, document.title, window.location.pathname);
 
+  // 3. Process the data
   try {
     const courses = parseIULMSBookmarkData(importData);
+
     if (courses.length === 0) {
-      state.importBanner = { type: 'error', text: 'Bookmark data was empty. Try clicking the bookmark again on your IULMS course page.' };
+      alert('Import failed: No courses could be read from the bookmark data.');
       return false;
     }
+
+    // 4. Success! Load data and bypass the login screen
     state.courses = courses;
-    state.user = { plan: 'free' };
+    state.user = { plan: 'free' }; // Automatically log them in to the dash
     state.tab = 'progress';
     state.importBanner = { type: 'success', text: `Successfully imported ${courses.length} courses from IULMS.` };
-    // Auto-dismiss banner after 5 seconds
+
     setTimeout(() => { state.importBanner = null; render(); }, 5000);
     return true;
+
   } catch (e) {
-    state.importBanner = { type: 'error', text: 'Could not import bookmark data: ' + e.message };
+    // Alert the error so it doesn't fail silently on the login screen
+    alert('Could not import from IULMS: ' + e.message);
     return false;
   }
 }

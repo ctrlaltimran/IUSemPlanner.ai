@@ -24,7 +24,7 @@ function parseScheduleString(text) {
     if (ap2 && ap2.toLowerCase() === 'pm' && h2 < 12) h2 += 12;
     if (ap1 && ap1.toLowerCase() === 'am' && h1 === 12) h1 = 0;
     const start = String(h1).padStart(2, '0') + ':' + m1;
-    const end   = String(h2).padStart(2, '0') + ':' + m2;
+    const end = String(h2).padStart(2, '0') + ':' + m2;
 
     // Look at the text near this time for day codes
     const segStart = Math.max(0, match.index - 40);
@@ -88,11 +88,11 @@ function parseIULMS(text) {
     if (/^Electives/i.test(line)) { currentSemester = null; inElectives = true; continue; }
 
     let status = null;
-    if (line.includes('Already cleared'))                  status = 'completed';
-    else if (line.includes('In Progress'))                 status = 'inProgress';
-    else if (line.includes('Pre Requisite not cleared'))   status = 'locked';
-    else if (line.includes('Refer below for Electives'))   status = 'elective';
-    else if (line.includes('Course not Offered'))          status = 'notOffered';
+    if (line.includes('Already cleared')) status = 'completed';
+    else if (line.includes('In Progress')) status = 'inProgress';
+    else if (line.includes('Pre Requisite not cleared')) status = 'locked';
+    else if (line.includes('Refer below for Electives')) status = 'elective';
+    else if (line.includes('Course not Offered')) status = 'notOffered';
     else continue;
 
     let tokens = line.split('\t').map(t => t.trim()).filter(t => t !== '');
@@ -175,17 +175,17 @@ function fileToBase64(file) {
    into the same tab-separated format that parseIULMS() understands. */
 
 function parseIULMSBookmarkData(payload) {
-  let decoded;
-  // Try base64 decode first; fallback to using payload as-is
+  let decoded = payload;
+
+  // Try base64 decode first. We strip whitespace so atob() doesn't crash.
   try {
-    if (/^[A-Za-z0-9+/=]+$/.test(payload.trim())) {
-      decoded = decodeURIComponent(escape(atob(payload)));
-    } else {
-      decoded = payload;
-    }
+    const cleanPayload = payload.replace(/\s+/g, '');
+    decoded = decodeURIComponent(escape(atob(cleanPayload)));
   } catch (e) {
-    throw new Error('Bookmark data could not be decoded.');
+    // If it fails, we assume it's just plain text and proceed
   }
+
+  // Format A: plain IULMS-style text (from latest bookmarklet)
 
   // Format A: plain IULMS-style text (from latest bookmarklet)
   // Detect by checking for "Semester - N" header anywhere in decoded text
