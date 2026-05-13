@@ -444,11 +444,22 @@ document.addEventListener('input', (e) => {
 /* URL parameter handler — auto-import from bookmarklet redirect */
 function checkURLImport() {
   const url = new URL(window.location.href);
-  const importData = url.searchParams.get('import');
+
+  // Try getting it from the query string first (for backwards compatibility)
+  let importData = url.searchParams.get('import');
+
+  // If not in query string, check the hash fragment (The new bypass method)
+  if (!importData && url.hash.startsWith('#import=')) {
+    importData = url.hash.substring(8); // Extract everything after '#import='
+  }
+
   if (!importData) return false;
 
-  // Remove the param from URL so reload doesn't re-import
+  // Clean up the URL so a page reload doesn't trigger a re-import
   url.searchParams.delete('import');
+  if (url.hash.startsWith('#import=')) {
+    url.hash = '';
+  }
   window.history.replaceState({}, '', url.toString());
 
   try {

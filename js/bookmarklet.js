@@ -41,7 +41,7 @@ const BOOKMARKLET_SOURCE = `(function(){
     }
     var text = lines.join('\\n');
     var encoded = btoa(unescape(encodeURIComponent(text)));
-    var url = TARGET + '?import=' + encoded;
+    var url = TARGET + '#import=' + encoded;
     var win = window.open(url, '_blank');
     if (!win || win.closed || typeof win.closed === 'undefined') {
       if (confirm('IUSemPlanner: Pop-up blocked.\\n\\nRedirect this tab instead?')) {
