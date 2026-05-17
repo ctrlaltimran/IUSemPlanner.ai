@@ -366,6 +366,7 @@ function extractScheduleFields(text) {
 /* Parse midterm result rows. The shape varies, so we try to detect the
    columns: course code, course name, total marks, obtained marks. */
 /* Parse midterm result rows. Detects courses by name if code is missing. */
+/* Parse midterm result rows. Detects courses by name and extracts all columns. */
 function parseMidterms(rows) {
   return rows.map(r => {
     const cells = r.cells || [];
@@ -373,32 +374,33 @@ function parseMidterms(rows) {
 
     let code = '', name = '';
     let codeIdx = -1;
-
-    // Check if it has a traditional course code
     for (let i = 0; i < cells.length; i++) {
       if (/^[A-Z]{2,5}[-\s]?\d{2,4}(?:-L)?$/i.test(cells[i])) { codeIdx = i; break; }
     }
 
     if (codeIdx !== -1) {
       code = cells[codeIdx].toUpperCase().replace(/\s+/, '-');
-      name = cells[codeIdx + 1] || '';
+      name = (cells[codeIdx + 1] || '').trim();
     } else {
-      // IU's new layout: No code, column 0 is just the Course Name
-      name = cells[0].trim();
+      name = (cells[0] || '').trim();
     }
 
-    // Column 1 is the obtained midterm marks. Assume total is out of 30.
-    let obtained = parseFloat(cells[1]);
-    let total = 30;
+    // Parse out the exact columns based on IU's table structure
+    const midtermRaw = parseFloat(cells[1]);
+    const quizRaw = parseFloat(cells[2]);
+    const projRaw = parseFloat(cells[3]);
+
+    const obtained = !isNaN(midtermRaw) && midtermRaw >= 0 ? midtermRaw : null;
+    const quizzes = !isNaN(quizRaw) && quizRaw >= 0 ? quizRaw : null;
+    const project = !isNaN(projRaw) && projRaw >= 0 ? projRaw : null;
+
+    // Calculate percentage based on 20 max marks for midterm
     let pct = null;
-
-    if (!isNaN(obtained) && obtained >= 0) {
-      pct = (obtained / total) * 100;
-    } else {
-      obtained = null;
+    if (obtained !== null) {
+      pct = (obtained / 20) * 100;
     }
 
-    return { code, name, total, obtained, percentage: pct, raw: cells };
+    return { code, name, total: 20, obtained, quizzes, project, percentage: pct, raw: cells };
   }).filter(Boolean);
 }
 

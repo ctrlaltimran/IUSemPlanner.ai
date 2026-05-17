@@ -383,60 +383,70 @@ function predictGradeFromPct(pct) {
      - Historical: total credits + points from transcript
      - Current semester: in-progress courses with midterm-based predictions
    Returns three scenarios: pessimistic, expected, optimistic. */
+/* ── Predict end-of-semester CGPA ── */
 function predictSemesterOutcome(transcript, midterms, currentCourses) {
-  const past = computeTranscriptStats(transcript);
-  const pastPoints = past ? past.totalPoints : 0;
-  const pastCredits = past ? past.totalCredits : 0;
+  // 1. Get past stats. If transcript is empty, fallback to the main course list estimate!
+  let pastPoints = 0;
+  let pastCredits = 0;
+  let pastCGPA = null;
 
-  /* Build map: course code -> midterm percentage */
-  /* Build map: course code & name -> midterm percentage */
+  const pastTrans = computeTranscriptStats(transcript);
+  if (pastTrans && pastTrans.totalCredits > 0) {
+    pastPoints = pastTrans.totalPoints;
+    pastCredits = pastTrans.totalCredits;
+    pastCGPA = pastTrans.cgpa;
+  } else {
+    const stats = computeStats(currentCourses || []);
+    if (stats && stats.gpa) {
+      pastCGPA = stats.gpa;
+      pastCredits = stats.completedCredits;
+      pastPoints = parseFloat(stats.gpa) * pastCredits; // Reverse engineer the points
+    }
+  }
+
+  // 2. Build map: link midterms by code OR name safely
   const midPct = {};
+  const midData = {};
   for (const m of midterms || []) {
-    if (m.percentage != null) {
-      if (m.code) midPct[m.code] = m.percentage;
-      // Also map by name to catch IU's code-less midterm tables
-      const normName = (m.name || '').toLowerCase().replace(/\s+/g, ' ').trim();
-      if (normName) midPct[normName] = m.percentage;
+    if (m.code) {
+      midPct[m.code] = m.percentage;
+      midData[m.code] = m;
+    }
+    const normName = (m.name || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    if (normName) {
+      midPct[normName] = m.percentage;
+      midData[normName] = m;
     }
   }
 
-  /* Identify current-semester courses we'll predict. These are courses
-     marked "In Progress" OR appearing in the midterms list. */
-  const inProgress = (currentCourses || []).filter(c => c.status === 'inProgress');
-  const byCode = {};
-  for (const c of inProgress) byCode[c.code] = c;
-  for (const code in midPct) {
-    if (!byCode[code]) {
-      byCode[code] = { code, name: '', credits: 3, status: 'inProgress' };
-    }
-  }
-  const semesterCourses = Object.values(byCode);
+  // 3. Only predict for courses actually marked "In Progress" in your main list
+  const semesterCourses = (currentCourses || []).filter(c => c.status === 'inProgress');
   if (semesterCourses.length === 0) {
-    return {
-      pastCGPA: past ? past.cgpa : null,
-      semesterPredictions: [],
-      scenarios: null,
-    };
+    return { pastCGPA, semesterPredictions: [], scenarios: null };
   }
 
   const semesterPredictions = semesterCourses.map(c => {
     const normName = (c.name || '').toLowerCase().replace(/\s+/g, ' ').trim();
     const pct = midPct[c.code] != null ? midPct[c.code] : midPct[normName];
+    const mData = midData[c.code] || midData[normName] || {};
+
     const expected = pct != null ? predictGradeFromPct(pct) : null;
-    /* Optimistic: bump up one band; pessimistic: drop one band. */
     let optimisticPt = expected ? Math.min(4.0, expected.point + 0.3) : 3.0;
     let pessimisticPt = expected ? Math.max(0.0, expected.point - 0.7) : 1.7;
+
     if (!expected) {
-      /* No midterm data — middle-of-road default. */
       return {
         code: c.code, name: c.name, credits: c.credits,
-        midtermPct: null, expected: null,
+        midtermPct: null, midtermRaw: null, quizzes: null, project: null, expected: null,
         expectedPt: 3.0, optimisticPt: 4.0, pessimisticPt: 2.0,
       };
     }
     return {
       code: c.code, name: c.name, credits: c.credits,
       midtermPct: pct,
+      midtermRaw: mData.obtained,
+      quizzes: mData.quizzes,
+      project: mData.project,
       expected: expected.grade,
       expectedPt: expected.point,
       optimisticPt, pessimisticPt,
@@ -455,7 +465,7 @@ function predictSemesterOutcome(transcript, midterms, currentCourses) {
   }
 
   return {
-    pastCGPA: past ? past.cgpa : null,
+    pastCGPA,
     pastCredits,
     semesterPredictions,
     semCredits,
