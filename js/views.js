@@ -1069,12 +1069,6 @@ function renderAddCustomModal() {
    midterm-based forecasts, upcoming exams.
    ════════════════════════════════════════════════════════════════════════ */
 
-/* ════════════════════════════════════════════════════════════════════════
-   v2.0 — DASHBOARD VIEW
-   Predictive student overview: profile, CGPA, attendance warnings,
-   midterm-based forecasts, upcoming exams.
-   ════════════════════════════════════════════════════════════════════════ */
-
 function renderDashboard() {
   const hasAnyData = state.courses.length > 0
     || state.transcript.length > 0
@@ -1357,73 +1351,6 @@ function renderDashboard() {
     `;
 }
 
-/* ── Exam schedule panel ── */
-let examPanel = '';
-if (state.examSchedule && state.examSchedule.length > 0) {
-  const examRows = state.examSchedule.map(e => `
-      <div class="exam-row">
-        <div class="exam-code">${esc(e.code)}</div>
-        <div class="exam-name">${esc(e.name || '')}</div>
-        <div class="exam-meta">
-          ${e.date ? `<span>${svgWrap(ICON.calendar, 11)} ${esc(e.date)}</span>` : ''}
-          ${e.time ? `<span>${svgWrap(ICON.clock, 11)} ${esc(e.time)}</span>` : ''}
-          ${e.venue ? `<span>${svgWrap(ICON.mappin, 11)} ${esc(e.venue)}</span>` : ''}
-        </div>
-      </div>`).join('');
-  examPanel = `
-      <div class="panel">
-        <div class="panel-head">
-          <div class="panel-title">${svgWrap(ICON.calendar)}Upcoming exams</div>
-          <div class="panel-meta">${state.examSchedule.length} scheduled</div>
-        </div>
-        <div class="exam-list">${examRows}</div>
-      </div>`;
-} else if (state.dataTimestamp) {
-  examPanel = `
-      <div class="panel">
-        <div class="panel-head">
-          <div class="panel-title">${svgWrap(ICON.calendar)}Upcoming exams</div>
-          <div class="panel-meta">not yet published</div>
-        </div>
-        <div class="empty" style="padding:28px;">
-          <p class="muted" style="font-size:13px">The exam schedule wasn't available on IULMS at sync time. Re-sync once the exam timetable is uploaded.</p>
-        </div>
-      </div>`;
-}
-
-/* ── Transcript snapshot panel ── */
-let transcriptPanel = '';
-if (transcriptStats && transcriptStats.byGrade) {
-  const grades = Object.entries(transcriptStats.byGrade)
-    .sort((a, b) => (GRADE_POINTS[b[0]] || 0) - (GRADE_POINTS[a[0]] || 0));
-  const totalGraded = transcriptStats.coursesGraded || 1;
-  const bars = grades.map(([g, count]) => {
-    const w = (count / totalGraded) * 100;
-    const cls = (GRADE_POINTS[g] >= 3.3) ? 'g-strong' : (GRADE_POINTS[g] >= 2.5) ? 'g-mid' : (GRADE_POINTS[g] >= 1.0) ? 'g-low' : 'g-fail';
-    return `<div class="g-bar"><div class="g-bar-letter">${g}</div><div class="g-bar-track"><div class="g-bar-fill ${cls}" style="width:${w}%"></div></div><div class="g-bar-count">${count}</div></div>`;
-  }).join('');
-  transcriptPanel = `
-      <div class="panel">
-        <div class="panel-head">
-          <div class="panel-title">${svgWrap(ICON.chart)}Grade distribution</div>
-          <div class="panel-meta">${transcriptStats.coursesGraded} graded course${transcriptStats.coursesGraded > 1 ? 's' : ''} · ${transcriptStats.totalCredits} cr</div>
-        </div>
-        <div class="grade-bars">${bars}</div>
-      </div>`;
-}
-
-return `
-    <div class="container">
-      ${hero}
-      <div class="dash-grid">
-        ${predictionPanel}
-        ${attendancePanel}
-        ${examPanel}
-        ${transcriptPanel}
-      </div>
-    </div>
-  `;
-}
 
 function gradeColorClass(point) {
   if (point >= 3.3) return 'g-strong';
