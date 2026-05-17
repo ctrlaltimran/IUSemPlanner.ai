@@ -8,6 +8,7 @@ const defaultState = {
   /* v2.0 — scraped from the super-bookmarklet */
   profile: null,           /* { name } */
   transcript: [],          /* [{ code, title, credits, grade, points }, …] */
+  transcriptGPA: null,     /* Explicit GPA from transcript page */
   attendance: [],          /* [{ course, totalSessions, present, absent }, …] */
   currentSchedule: [],     /* [{ day, courseTitle, faculty, location, edpCode, startTime, endTime, raw }, …] */
   midterms: [],            /* [{ code, name, total, obtained, percentage, raw }, …] */
@@ -53,6 +54,7 @@ function saveLocal() {
       courses: state.courses,
       profile: state.profile,
       transcript: state.transcript,
+      transcriptGPA: state.transcriptGPA,
       attendance: state.attendance,
       currentSchedule: state.currentSchedule,
       midterms: state.midterms,
@@ -543,6 +545,7 @@ function checkURLImport() {
     state.courses = result.courses || [];
     state.profile = result.profile || null;
     state.transcript = result.transcript || [];
+    state.transcriptGPA = result.transcriptGPA || null;
     state.attendance = result.attendance || [];
     state.currentSchedule = result.schedule || [];
     state.midterms = result.midterms || [];

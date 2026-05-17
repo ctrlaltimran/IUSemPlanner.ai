@@ -293,17 +293,46 @@ function parseBookmarkPayloadV2(p) {
   const courses = p.courseListText ? parseIULMS(p.courseListText) : [];
 
   /* Enrich schedule entries by extracting structured fields from the raw text. */
-  const schedule = (p.schedule || []).map(s => ({
+  const scheduleRaw = (p.schedule || []).map(s => ({
     day: normalizeDay(s.day),
     rawDay: s.day,
     raw: s.raw,
     ...extractScheduleFields(s.raw),
   })).filter(s => s.day && (s.courseTitle || s.edpCode || s.startTime));
 
+  // Merge fragmented schedule blocks
+  const schedule = [];
+  let currentBlock = null;
+
+  for (const s of scheduleRaw) {
+    if (!currentBlock || currentBlock.day !== s.day) {
+      if (currentBlock) schedule.push(currentBlock);
+      currentBlock = { ...s };
+    } else {
+      const isNewCourse = s.courseTitle && currentBlock.courseTitle && s.courseTitle !== currentBlock.courseTitle;
+      const isNewTime = s.startTime && currentBlock.startTime && s.startTime !== currentBlock.startTime;
+      
+      if (isNewCourse || isNewTime) {
+        schedule.push(currentBlock);
+        currentBlock = { ...s };
+      } else {
+        if (!currentBlock.courseTitle && s.courseTitle) currentBlock.courseTitle = s.courseTitle;
+        if (!currentBlock.faculty && s.faculty) currentBlock.faculty = s.faculty;
+        if (!currentBlock.location && s.location) currentBlock.location = s.location;
+        if (!currentBlock.edpCode && s.edpCode) currentBlock.edpCode = s.edpCode;
+        if (!currentBlock.startTime && s.startTime) currentBlock.startTime = s.startTime;
+        if (!currentBlock.endTime && s.endTime) currentBlock.endTime = s.endTime;
+        if (s.raw && !currentBlock.raw.includes(s.raw)) currentBlock.raw += '\\n' + s.raw;
+      }
+    }
+  }
+  if (currentBlock) schedule.push(currentBlock);
+
   return {
     courses,
     profile: p.profile || null,
     transcript: p.transcript || [],
+    transcriptGPA: p.transcriptGPA || null,
     attendance: p.attendance || [],
     schedule,
     midterms: parseMidterms(p.midterms || []),
@@ -337,10 +366,10 @@ function extractScheduleFields(text) {
   const out = { courseTitle: '', faculty: '', location: '', edpCode: '', startTime: '', endTime: '' };
   if (!text) return out;
 
-  const edpMatch = text.match(/EDP[\s#:]*(\d+)/i);
+  const edpMatch = text.match(/EDP[\s#:]*(?:Code\s*:?\s*)?(\d+)/i);
   if (edpMatch) out.edpCode = edpMatch[1];
 
-  const timeRe = /(\d{1,2})[:.](\d{2})\s*(am|pm)?\s*[-–to]+\s*(\d{1,2})[:.](\d{2})\s*(am|pm)?/i;
+  const timeRe = /(\d{1,2})[:.](\d{2})\s*(am|pm)?\s*[-–to\/]+\s*(\d{1,2})[:.](\d{2})\s*(am|pm)?/i;
   const tm = text.match(timeRe);
   if (tm) {
     let h1 = parseInt(tm[1], 10), m1 = tm[2], ap1 = tm[3];
@@ -355,10 +384,17 @@ function extractScheduleFields(text) {
 
   /* Lines are heuristically: course (often uppercase), faculty, location. */
   const lines = text.split(/[\n;]/).map(l => l.trim()).filter(Boolean)
-    .filter(l => !timeRe.test(l) && !/^EDP/i.test(l));
-  if (lines.length >= 1) out.courseTitle = lines[0];
-  if (lines.length >= 2) out.faculty = lines[1];
-  if (lines.length >= 3) out.location = lines.slice(2).join(' · ');
+    .filter(l => !timeRe.test(l) && !/^EDP/i.test(l) && !/^Course Code/i.test(l));
+    
+  lines.forEach(l => {
+    if (/^Course Title\s*:/i.test(l)) out.courseTitle = l.replace(/^Course Title\s*:/i, '').trim();
+    else if (/^Faculty\s*:/i.test(l)) out.faculty = l.replace(/^Faculty\s*:/i, '').trim();
+    else if (/^Location\s*:/i.test(l)) out.location = l.replace(/^Location\s*:/i, '').trim();
+  });
+
+  if (!out.courseTitle && lines.length >= 1 && !lines[0].includes(':')) out.courseTitle = lines[0];
+  if (!out.faculty && lines.length >= 2 && !lines[1].includes(':')) out.faculty = lines[1];
+  if (!out.location && lines.length >= 3 && !lines[2].includes(':')) out.location = lines.slice(2).join(' · ');
 
   return out;
 }

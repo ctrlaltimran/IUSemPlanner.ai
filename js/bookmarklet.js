@@ -56,7 +56,8 @@ const BOOKMARKLET_SOURCE = `(async function(){
       transcript: [],
       schedule: [],
       midterms: [],
-      examSchedule: []
+      examSchedule: [],
+      transcriptGPA: null
     };
 
     /* === 1. PROFILE (current page) === */
@@ -155,6 +156,11 @@ const BOOKMARKLET_SOURCE = `(async function(){
             });
           }
         });
+        var bodyText = doc.body.innerText || doc.body.textContent || '';
+        var gpaMatch = bodyText.match(/GPA:\s*([0-9.]+)/i);
+        if (gpaMatch) {
+          payload.transcriptGPA = parseFloat(gpaMatch[1]);
+        }
       }
     } catch(e){}
 
@@ -169,9 +175,9 @@ const BOOKMARKLET_SOURCE = `(async function(){
           if(!dayText) return;
           var row = daySpan.closest('tr');
           if(!row) return;
-          var details = row.querySelectorAll('td.detailsStyle');
+          var details = Array.prototype.slice.call(row.children).filter(function(el) { return el.tagName && el.tagName.toLowerCase() === 'td' && el.className.indexOf('detailsStyle') !== -1; });
           if(details.length === 0){
-            details = row.querySelectorAll('td');
+            details = Array.prototype.slice.call(row.children).filter(function(el) { return el.tagName && el.tagName.toLowerCase() === 'td'; });
           }
           details.forEach(function(td){
             var raw = (td.innerText || td.textContent || '').trim();

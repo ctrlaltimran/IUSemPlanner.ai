@@ -160,6 +160,7 @@ function renderApp() {
   if (state.tab === 'dashboard') body = renderDashboard();
   if (state.tab === 'timetable') body = renderTimetable();
   if (state.tab === 'progress') body = renderProgress();
+  if (state.tab === 'transcript') body = renderTranscript();
   if (state.tab === 'courses') body = renderCatalog();
   if (state.tab === 'planner') body = renderPlanner();
   if (state.tab === 'ai') body = renderAI();
@@ -195,6 +196,7 @@ function renderApp() {
         ${tabBtn('dashboard', 'Dashboard', ICON.chart, false, 0, hasV2Data ? 'NEW' : null)}
         ${tabBtn('timetable', 'Timetable', ICON.calendar, false, 0, (state.currentSchedule && state.currentSchedule.length) ? null : null)}
         ${tabBtn('progress', 'Progress', ICON.trophy)}
+        ${tabBtn('transcript', 'Transcript', ICON.file)}
         ${tabBtn('courses', 'Courses', ICON.book)}
         ${tabBtn('planner', 'Planner', ICON.target, false, plannedCount)}
         ${tabBtn('ai', 'AI Insights', ICON.brain, true)}
@@ -344,6 +346,75 @@ function renderProgress() {
       <div style="margin-top:24px">
         <div class="panel-head" style="margin-bottom:16px"><div class="panel-title">By semester</div><div class="panel-meta">course completion breakdown</div></div>
         <div class="semester-grid">${semCards.join('')}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderTranscript() {
+  if (state.transcript.length === 0) {
+    return `
+      <div class="container">
+        <div class="page-head">
+          <div>
+            <h2 class="page-title">Transcript</h2>
+            <p class="page-sub">// full academic record</p>
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" data-action="open-import">${svgWrap(ICON.download)}Import via Bookmarklet</button>
+          </div>
+        </div>
+        <div class="empty" style="padding:48px 24px">
+          <div class="empty-comment">// no transcript data</div>
+          <h3 class="empty-title">Transcript not found</h3>
+          <p class="empty-text">Your transcript hasn't been imported yet. Use the v2 bookmarklet to sync your full transcript directly from IULMS.</p>
+        </div>
+      </div>
+    `;
+  }
+
+  const rows = state.transcript.map(t => `
+    <div class="catalog-row">
+      <div class="cat-code">${esc(t.code)}</div>
+      <div class="cat-main">
+        <div class="cat-name">${esc(t.title)}</div>
+        <div class="cat-meta">
+          <span>${t.credits} cr</span>
+        </div>
+      </div>
+      <div class="cat-right">
+        <span class="grade-pill">${t.grade || '—'}</span>
+        ${t.points != null ? `<span style="font-size:12px;color:var(--text-muted);width:32px;text-align:right">${t.points} pt</span>` : ''}
+      </div>
+    </div>`).join('');
+
+  const gpaStr = state.transcriptGPA != null ? state.transcriptGPA.toFixed(2) : (computeTranscriptStats(state.transcript)?.cgpa || '—');
+
+  return `
+    <div class="container">
+      <div class="page-head">
+        <div>
+          <h2 class="page-title">Transcript</h2>
+          <p class="page-sub">// official record · ${state.transcript.length} courses</p>
+        </div>
+        <div class="actions">
+          <button class="btn btn-secondary" data-action="open-import">${svgWrap(ICON.refresh)}Re-sync</button>
+        </div>
+      </div>
+      
+      <div class="panel" style="margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; padding:24px;">
+        <div>
+          <div style="font-size:12px; font-family:var(--font-mono); color:var(--text-muted); margin-bottom:4px">// overall cgpa</div>
+          <div style="font-size:32px; font-weight:800; font-family:var(--font-mono); color:var(--text)">${gpaStr}<span style="font-size:16px; color:var(--text-muted)">/4.0</span></div>
+        </div>
+        <div>
+          <div style="font-size:12px; font-family:var(--font-mono); color:var(--text-muted); margin-bottom:4px">// total credits</div>
+          <div style="font-size:24px; font-weight:700; font-family:var(--font-mono); color:var(--text)">${computeTranscriptStats(state.transcript)?.totalCredits || 0}</div>
+        </div>
+      </div>
+
+      <div class="catalog-list">
+        ${rows}
       </div>
     </div>
   `;
@@ -1086,7 +1157,7 @@ function renderDashboard() {
     : null;
 
   /* ── Hero greeting + key stats ── */
-  const cgpa = transcriptStats ? transcriptStats.cgpa : (courseStats ? courseStats.gpa : null);
+  const cgpa = state.transcriptGPA != null ? state.transcriptGPA.toFixed(2) : (transcriptStats && transcriptStats.cgpa ? transcriptStats.cgpa : (courseStats ? courseStats.gpa : null));
   const credits = transcriptStats ? transcriptStats.totalCredits : (courseStats ? courseStats.completedCredits : 0);
   const pct = courseStats ? courseStats.pctComplete : null;
 
@@ -1108,7 +1179,7 @@ function renderDashboard() {
           <div class="dash-stat accent">
             <div class="dash-stat-label">${svgWrap(ICON.graduation, 12)} cgpa</div>
             <div class="dash-stat-value">${cgpa}<span class="suffix">/4.0</span></div>
-            <div class="dash-stat-hint">${transcriptStats ? 'from official transcript' : 'estimate from grades'}</div>
+            <div class="dash-stat-hint">${state.transcriptGPA != null ? 'from official transcript' : (transcriptStats ? 'computed from transcript' : 'estimate from grades')}</div>
           </div>` : ''}
         ${credits > 0 ? `
           <div class="dash-stat info">
