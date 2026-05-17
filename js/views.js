@@ -267,6 +267,27 @@ function renderProgress() {
       </div>`);
   }
 
+  /* Catch electives or extra courses that don't belong to a specific 1-8 semester */
+  const floatingCourses = state.courses.filter(c => !c.semester && c.status !== 'elective');
+  if (floatingCourses.length > 0) {
+    const done = floatingCourses.filter(c => c.status === 'completed').reduce((a, b) => a + b.credits, 0);
+    const total = floatingCourses.reduce((a, b) => a + b.credits, 0);
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    const rows = floatingCourses.map(c => `
+      <div class="sem-course">
+        <span class="sem-course-dot dot-${c.status}"></span>
+        <span class="sem-course-code">${esc(c.code)}</span>
+        <span class="sem-course-name">${esc(c.name)}</span>
+        ${c.grade ? `<span class="sem-course-grade">${c.grade}</span>` : ''}
+      </div>`).join('');
+    semCards.push(`
+      <div class="sem-card">
+        <div class="sem-head"><div class="sem-name">Electives & Extras</div><div class="sem-meta">${done}/${total} cr · ${pct}%</div></div>
+        <div class="sem-progress"><div class="sem-progress-fill" style="width:${pct}%"></div></div>
+        <div class="sem-courses">${rows}</div>
+      </div>`);
+  }
+
   return `
     <div class="container">
       <div class="page-head">

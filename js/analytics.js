@@ -5,9 +5,9 @@ function computeStats(courses) {
   const byStatus = { completed: [], inProgress: [], available: [], locked: [], notOffered: [], elective: [] };
   for (const c of courses) (byStatus[c.status] || []).push(c);
 
-  const completedCredits  = byStatus.completed.reduce((s, c) => s + c.credits, 0);
+  const completedCredits = byStatus.completed.reduce((s, c) => s + c.credits, 0);
   const inProgressCredits = byStatus.inProgress.reduce((s, c) => s + c.credits, 0);
-  const remainingCredits  = Math.max(0, TOTAL_CREDITS - completedCredits - inProgressCredits);
+  const remainingCredits = Math.max(0, TOTAL_CREDITS - completedCredits - inProgressCredits);
 
   let totalPoints = 0, totalCr = 0;
   for (const c of byStatus.completed) {
@@ -357,17 +357,17 @@ function computeAttendanceSummary(attendance) {
    coarse heuristic — it does NOT replace the official cutoffs, which
    vary by faculty, but it's useful for triage. */
 const MIDTERM_TO_GRADE_BANDS = [
-  { min: 87, grade: 'A',  point: 4.0 },
+  { min: 87, grade: 'A', point: 4.0 },
   { min: 81, grade: 'A-', point: 3.7 },
   { min: 77, grade: 'B+', point: 3.3 },
-  { min: 71, grade: 'B',  point: 3.0 },
+  { min: 71, grade: 'B', point: 3.0 },
   { min: 67, grade: 'B-', point: 2.7 },
   { min: 63, grade: 'C+', point: 2.3 },
-  { min: 57, grade: 'C',  point: 2.0 },
+  { min: 57, grade: 'C', point: 2.0 },
   { min: 53, grade: 'C-', point: 1.7 },
   { min: 47, grade: 'D+', point: 1.3 },
-  { min: 40, grade: 'D',  point: 1.0 },
-  { min: 0,  grade: 'F',  point: 0.0 },
+  { min: 40, grade: 'D', point: 1.0 },
+  { min: 0, grade: 'F', point: 0.0 },
 ];
 
 function predictGradeFromPct(pct) {
@@ -389,9 +389,15 @@ function predictSemesterOutcome(transcript, midterms, currentCourses) {
   const pastCredits = past ? past.totalCredits : 0;
 
   /* Build map: course code -> midterm percentage */
+  /* Build map: course code & name -> midterm percentage */
   const midPct = {};
   for (const m of midterms || []) {
-    if (m.percentage != null) midPct[m.code] = m.percentage;
+    if (m.percentage != null) {
+      if (m.code) midPct[m.code] = m.percentage;
+      // Also map by name to catch IU's code-less midterm tables
+      const normName = (m.name || '').toLowerCase().replace(/\s+/g, ' ').trim();
+      if (normName) midPct[normName] = m.percentage;
+    }
   }
 
   /* Identify current-semester courses we'll predict. These are courses
@@ -413,9 +419,9 @@ function predictSemesterOutcome(transcript, midterms, currentCourses) {
     };
   }
 
-  /* Build per-course predictions */
   const semesterPredictions = semesterCourses.map(c => {
-    const pct = midPct[c.code];
+    const normName = (c.name || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    const pct = midPct[c.code] != null ? midPct[c.code] : midPct[normName];
     const expected = pct != null ? predictGradeFromPct(pct) : null;
     /* Optimistic: bump up one band; pessimistic: drop one band. */
     let optimisticPt = expected ? Math.min(4.0, expected.point + 0.3) : 3.0;

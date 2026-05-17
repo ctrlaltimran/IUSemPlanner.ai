@@ -365,36 +365,39 @@ function extractScheduleFields(text) {
 
 /* Parse midterm result rows. The shape varies, so we try to detect the
    columns: course code, course name, total marks, obtained marks. */
+/* Parse midterm result rows. Detects courses by name if code is missing. */
 function parseMidterms(rows) {
   return rows.map(r => {
     const cells = r.cells || [];
-    /* Find the first cell that looks like a course code. */
+    if (cells.length < 2) return null;
+
+    let code = '', name = '';
     let codeIdx = -1;
+
+    // Check if it has a traditional course code
     for (let i = 0; i < cells.length; i++) {
       if (/^[A-Z]{2,5}[-\s]?\d{2,4}(?:-L)?$/i.test(cells[i])) { codeIdx = i; break; }
     }
-    if (codeIdx === -1) return null;
 
-    const code = cells[codeIdx].toUpperCase().replace(/\s+/, '-');
-    const name = cells[codeIdx + 1] || '';
+    if (codeIdx !== -1) {
+      code = cells[codeIdx].toUpperCase().replace(/\s+/, '-');
+      name = cells[codeIdx + 1] || '';
+    } else {
+      // IU's new layout: No code, column 0 is just the Course Name
+      name = cells[0].trim();
+    }
 
-    /* Find numeric "marks obtained" / "total marks" columns. */
-    const nums = cells.map(c => {
-      const n = parseFloat(c);
-      return Number.isFinite(n) ? n : null;
-    });
-    let total = null, obtained = null;
-    for (let i = cells.length - 1; i > codeIdx + 1; i--) {
-      if (nums[i] != null && nums[i] >= 0) {
-        if (obtained == null) obtained = nums[i];
-        else if (total == null) { total = nums[i]; break; }
-      }
+    // Column 1 is the obtained midterm marks. Assume total is out of 30.
+    let obtained = parseFloat(cells[1]);
+    let total = 30;
+    let pct = null;
+
+    if (!isNaN(obtained) && obtained >= 0) {
+      pct = (obtained / total) * 100;
+    } else {
+      obtained = null;
     }
-    if (total != null && obtained != null && total < obtained) {
-      const t = total; total = obtained; obtained = t;
-    }
-    const pct = (total != null && obtained != null && total > 0)
-      ? (obtained / total) * 100 : null;
+
     return { code, name, total, obtained, percentage: pct, raw: cells };
   }).filter(Boolean);
 }
