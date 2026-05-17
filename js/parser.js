@@ -170,34 +170,56 @@ function fileToBase64(file) {
   });
 }
 
-/* ── Bookmarklet JSON parser ──
-   Converts the JSON payload from the bookmarklet (which captures IULMS tables)
-   into the same tab-separated format that parseIULMS() understands. */
+/* ── Bookmarklet payload parser (v2) ──
+   The super-bookmarklet bundles everything into one JSON payload:
+     { version: 2, profile, courseListText, attendance, transcript,
+       schedule, midterms, examSchedule }
+
+   For backwards compatibility, we still accept the legacy v1 format
+   (plain IULMS text, base64-encoded, no JSON wrapper). */
 
 function parseIULMSBookmarkData(payload) {
   let decoded = payload;
 
-  // Try base64 decode first. We strip whitespace so atob() doesn't crash.
+  /* Try base64 decode first. Whitespace is stripped so atob() doesn't crash. */
   try {
     const cleanPayload = payload.replace(/\s+/g, '');
     decoded = decodeURIComponent(escape(atob(cleanPayload)));
   } catch (e) {
-    // If it fails, we assume it's just plain text and proceed
+    /* Not base64 — assume it's raw text. */
   }
 
-  // Format A: plain IULMS-style text (from latest bookmarklet)
+  /* ── Format v2: structured JSON payload ── */
+  if (decoded && decoded.trim().startsWith('{')) {
+    let json;
+    try {
+      json = JSON.parse(decoded);
+    } catch (e) {
+      throw new Error('Bookmark data is corrupted (invalid JSON).');
+    }
+    if (json && (json.version === 2 || json.courseListText !== undefined)) {
+      return parseBookmarkPayloadV2(json);
+    }
+  }
 
-  // Format A: plain IULMS-style text (from latest bookmarklet)
-  // Detect by checking for "Semester - N" header anywhere in decoded text
+  /* ── Format v1: plain IULMS-style text ── */
   if (/^\s*Semester\s*-\s*\d/im.test(decoded)) {
     const courses = parseIULMS(decoded);
     if (courses.length === 0) {
       throw new Error('No courses found in bookmark data.');
     }
-    return courses;
+    return {
+      courses,
+      profile: null,
+      transcript: [],
+      attendance: [],
+      schedule: [],
+      midterms: [],
+      examSchedule: [],
+    };
   }
 
-  // Format B: legacy JSON dump (kept for backwards compatibility)
+  /* ── Format v0: legacy JSON array of {table, row, cells} ── */
   let data;
   try {
     data = JSON.parse(decoded);
@@ -209,7 +231,6 @@ function parseIULMSBookmarkData(payload) {
     throw new Error('Bookmark data is empty.');
   }
 
-  // Group by table index
   const tables = {};
   for (const row of data) {
     if (row.table == null) continue;
@@ -217,7 +238,6 @@ function parseIULMSBookmarkData(payload) {
     tables[row.table][row.row] = row.cells || [];
   }
 
-  // Build IULMS-style text by walking semester tables
   let text = '';
   const keys = Object.keys(tables).map(Number).sort((a, b) => a - b);
   let foundSemester = false;
@@ -225,7 +245,6 @@ function parseIULMSBookmarkData(payload) {
   for (const tk of keys) {
     const tableRows = tables[tk];
     if (!tableRows || tableRows.length === 0) continue;
-
     const headerCell = (tableRows[0] && tableRows[0][0]) || '';
     const isSemHeader = /^Semester\s*-\s*\d/i.test(headerCell);
     const isElectiveHeader = /^Electives/i.test(headerCell);
@@ -234,22 +253,16 @@ function parseIULMSBookmarkData(payload) {
     foundSemester = true;
     text += headerCell + '\n';
 
-    // The IULMS semester table contains ONE big row whose cells[0] holds the
-    // entire tab-separated course list. If we find that, use it and stop —
-    // otherwise subsequent rows would re-introduce the same courses as duplicates.
     let consumedBlob = false;
     for (let i = 1; i < tableRows.length; i++) {
       const cells = tableRows[i];
       if (!cells || cells.length === 0) continue;
-
       if (cells[0] && (cells[0].indexOf('\t') !== -1 || cells[0].indexOf('\n') !== -1)) {
         text += cells[0] + '\n';
         consumedBlob = true;
         break;
       }
     }
-
-    // Fallback: no blob found, join individual cell rows.
     if (!consumedBlob) {
       for (let i = 1; i < tableRows.length; i++) {
         const cells = tableRows[i];
@@ -263,11 +276,150 @@ function parseIULMSBookmarkData(payload) {
     throw new Error('No semester data found. Make sure you clicked the bookmark on the IULMS SIC course page.');
   }
 
-  // IULMS uses <br> tags inside course rows when a prerequisite is present,
-  // which innerText converts to '\n'. This creates spurious newlines that
-  // break the row in two. Heal these: if a line break is followed by tab+digit
-  // (the credit hours column), merge it back into the previous line.
   text = text.replace(/\n\t(\d+)\t/g, '\t$1\t');
+  return {
+    courses: parseIULMS(text),
+    profile: null,
+    transcript: [],
+    attendance: [],
+    schedule: [],
+    midterms: [],
+    examSchedule: [],
+  };
+}
 
-  return parseIULMS(text);
+/* Parse the v2 payload from the super-bookmarklet. */
+function parseBookmarkPayloadV2(p) {
+  const courses = p.courseListText ? parseIULMS(p.courseListText) : [];
+
+  /* Enrich schedule entries by extracting structured fields from the raw text. */
+  const schedule = (p.schedule || []).map(s => ({
+    day: normalizeDay(s.day),
+    rawDay: s.day,
+    raw: s.raw,
+    ...extractScheduleFields(s.raw),
+  })).filter(s => s.day && (s.courseTitle || s.edpCode || s.startTime));
+
+  return {
+    courses,
+    profile: p.profile || null,
+    transcript: p.transcript || [],
+    attendance: p.attendance || [],
+    schedule,
+    midterms: parseMidterms(p.midterms || []),
+    examSchedule: parseExamSchedule(p.examSchedule || []),
+  };
+}
+
+/* Normalize a day name like "Monday" -> "mon". */
+function normalizeDay(name) {
+  if (!name) return '';
+  const lower = name.toLowerCase().replace(/[^a-z]/g, '').slice(0, 9);
+  if (DAY_NAME_MAP[lower]) return DAY_NAME_MAP[lower];
+  if (lower.startsWith('mon')) return 'mon';
+  if (lower.startsWith('tue')) return 'tue';
+  if (lower.startsWith('wed')) return 'wed';
+  if (lower.startsWith('thu')) return 'thu';
+  if (lower.startsWith('fri')) return 'fri';
+  if (lower.startsWith('sat')) return 'sat';
+  if (lower.startsWith('sun')) return 'sun';
+  return '';
+}
+
+/* Extract structured fields from a raw schedule cell.
+   The IULMS Schedule.php cell typically contains lines like:
+     COURSE TITLE
+     Faculty Name
+     Room / Block
+     EDP: 12345
+     09:00 AM - 10:30 AM */
+function extractScheduleFields(text) {
+  const out = { courseTitle: '', faculty: '', location: '', edpCode: '', startTime: '', endTime: '' };
+  if (!text) return out;
+
+  const edpMatch = text.match(/EDP[\s#:]*(\d+)/i);
+  if (edpMatch) out.edpCode = edpMatch[1];
+
+  const timeRe = /(\d{1,2})[:.](\d{2})\s*(am|pm)?\s*[-–to]+\s*(\d{1,2})[:.](\d{2})\s*(am|pm)?/i;
+  const tm = text.match(timeRe);
+  if (tm) {
+    let h1 = parseInt(tm[1], 10), m1 = tm[2], ap1 = tm[3];
+    let h2 = parseInt(tm[4], 10), m2 = tm[5], ap2 = tm[6];
+    if (ap1 && ap1.toLowerCase() === 'pm' && h1 < 12) h1 += 12;
+    if (ap2 && ap2.toLowerCase() === 'pm' && h2 < 12) h2 += 12;
+    if (ap1 && ap1.toLowerCase() === 'am' && h1 === 12) h1 = 0;
+    if (ap2 && ap2.toLowerCase() === 'am' && h2 === 12) h2 = 0;
+    out.startTime = String(h1).padStart(2, '0') + ':' + m1;
+    out.endTime = String(h2).padStart(2, '0') + ':' + m2;
+  }
+
+  /* Lines are heuristically: course (often uppercase), faculty, location. */
+  const lines = text.split(/[\n;]/).map(l => l.trim()).filter(Boolean)
+    .filter(l => !timeRe.test(l) && !/^EDP/i.test(l));
+  if (lines.length >= 1) out.courseTitle = lines[0];
+  if (lines.length >= 2) out.faculty = lines[1];
+  if (lines.length >= 3) out.location = lines.slice(2).join(' · ');
+
+  return out;
+}
+
+/* Parse midterm result rows. The shape varies, so we try to detect the
+   columns: course code, course name, total marks, obtained marks. */
+function parseMidterms(rows) {
+  return rows.map(r => {
+    const cells = r.cells || [];
+    /* Find the first cell that looks like a course code. */
+    let codeIdx = -1;
+    for (let i = 0; i < cells.length; i++) {
+      if (/^[A-Z]{2,5}[-\s]?\d{2,4}(?:-L)?$/i.test(cells[i])) { codeIdx = i; break; }
+    }
+    if (codeIdx === -1) return null;
+
+    const code = cells[codeIdx].toUpperCase().replace(/\s+/, '-');
+    const name = cells[codeIdx + 1] || '';
+
+    /* Find numeric "marks obtained" / "total marks" columns. */
+    const nums = cells.map(c => {
+      const n = parseFloat(c);
+      return Number.isFinite(n) ? n : null;
+    });
+    let total = null, obtained = null;
+    for (let i = cells.length - 1; i > codeIdx + 1; i--) {
+      if (nums[i] != null && nums[i] >= 0) {
+        if (obtained == null) obtained = nums[i];
+        else if (total == null) { total = nums[i]; break; }
+      }
+    }
+    if (total != null && obtained != null && total < obtained) {
+      const t = total; total = obtained; obtained = t;
+    }
+    const pct = (total != null && obtained != null && total > 0)
+      ? (obtained / total) * 100 : null;
+    return { code, name, total, obtained, percentage: pct, raw: cells };
+  }).filter(Boolean);
+}
+
+/* Parse exam schedule rows. Detect course code and date columns. */
+function parseExamSchedule(rows) {
+  return rows.map(r => {
+    const cells = r.cells || [];
+    let codeIdx = -1;
+    for (let i = 0; i < cells.length; i++) {
+      if (/^[A-Z]{2,5}[-\s]?\d{2,4}(?:-L)?$/i.test(cells[i])) { codeIdx = i; break; }
+    }
+    if (codeIdx === -1) return null;
+
+    const code = cells[codeIdx].toUpperCase().replace(/\s+/, '-');
+    const name = cells[codeIdx + 1] || '';
+
+    let date = '', time = '', venue = '';
+    for (let i = codeIdx + 2; i < cells.length; i++) {
+      const c = cells[i];
+      if (!c) continue;
+      if (!date && /\d{1,2}[-\/]\w+[-\/]\d{2,4}|\d{4}-\d{2}-\d{2}/.test(c)) { date = c; continue; }
+      if (!time && /\d{1,2}:\d{2}/.test(c)) { time = c; continue; }
+      if (!venue && c.length > 0) { venue = c; }
+    }
+    return { code, name, date, time, venue, raw: cells };
+  }).filter(Boolean);
 }

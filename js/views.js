@@ -12,31 +12,31 @@ function renderLogin() {
       <div class="login-wrap">
 
         <div style="text-align:center;margin-bottom:16px;">
-          <div class="login-pill">v4.0 · IUSemPlanner.ai</div>
+          <div class="login-pill">v2.0 · predictive dashboard · IUSemPlanner.ai</div>
         </div>
 
         <div class="hero-split">
           <div class="hero-left">
             <h1 class="hero-headline" style="font-family: 'JetBrains Mono', monospace; font-size: clamp(28px, 4vw, 50px); letter-spacing: -0.02em; line-height: 1.3;">
-              <span style="color: #059669; font-size: 16px; display: block; margin-bottom: 12px; font-weight: 600; letter-spacing: 0;">// expectation vs reality</span>
-              <span style="color: #111827;">Gave IULMS its first</span><br>
-              <span style="color: #6b7280;">update since the</span>
+              <span style="color: #059669; font-size: 16px; display: block; margin-bottom: 12px; font-weight: 600; letter-spacing: 0;">// from spreadsheet to dashboard</span>
+              <span style="color: #111827;">Your full IULMS profile,</span><br>
+              <span style="color: #6b7280;">in</span>
               <em style="color: #d97706; font-style: normal; font-weight: 800; position: relative; padding: 2px 10px; background: #fffbeb; border-radius: 8px; border: 1px solid #fde68a; display: inline-block; margin-left: 4px; vertical-align: text-bottom;">
-                &lt;DINOSAURS/&gt;
+                &lt;ONE CLICK/&gt;
               </em>
             </h1>
             <p class="hero-body">
-              Import your IULMS courses in 10 seconds. Detect clashes,
-              track your GPA, and plan a semester that doesn't break you.
+              Courses · transcript · attendance · weekly schedule · midterm results · exam dates —
+              one bookmark pulls all six and forecasts your end-of-semester CGPA.
               <b>Built by students of IQRA University, for its students.</b>
             </p>
           </div>
           <div class="hero-right">
             <div class="hero-char-wrap">
               <img src="./media/iui.png" alt="IUSemPlanner mascot" class="hero-char">
-              <div class="hero-float-tag t1">8 semesters tracked</div>
-              <div class="hero-float-tag t2">No clashes</div>
-              <div class="hero-float-tag t3">GPA 3.4</div>
+              <div class="hero-float-tag t1">6 pages, 1 click</div>
+              <div class="hero-float-tag t2">CGPA forecast</div>
+              <div class="hero-float-tag t3">Attendance alerts</div>
             </div>
           </div>
         </div>
@@ -157,10 +157,18 @@ function renderApp() {
   const isPro = state.user.plan === 'pro';
   const plannedCount = state.courses.filter(c => c.planned).length;
   let body = '';
+  if (state.tab === 'dashboard') body = renderDashboard();
+  if (state.tab === 'timetable') body = renderTimetable();
   if (state.tab === 'progress') body = renderProgress();
   if (state.tab === 'courses') body = renderCatalog();
   if (state.tab === 'planner') body = renderPlanner();
   if (state.tab === 'ai') body = renderAI();
+
+  const userName = state.profile && state.profile.name;
+  const firstName = userName ? userName.split(' ')[0] : null;
+  const hasV2Data = (state.transcript && state.transcript.length > 0)
+    || (state.attendance && state.attendance.length > 0)
+    || (state.currentSchedule && state.currentSchedule.length > 0);
 
   return `
     <header class="header">
@@ -168,7 +176,9 @@ function renderApp() {
         <div class="brand">
           <span class="brand-mark">IU</span>
           <span class="brand-name">SemPlanner.ai</span>
-          <span class="brand-meta">${svgWrap(ICON.hash, 12)}${state.courses.length} courses</span>
+          ${firstName
+            ? `<span class="brand-meta">${svgWrap(ICON.user, 12)}${esc(firstName)}</span>`
+            : `<span class="brand-meta">${svgWrap(ICON.hash, 12)}${state.courses.length} courses</span>`}
         </div>
         <div class="header-right">
           <span class="plan-pill ${isPro ? 'pro' : 'free'}">
@@ -182,6 +192,8 @@ function renderApp() {
     </header>
     <nav class="tabs">
       <div class="tabs-inner">
+        ${tabBtn('dashboard', 'Dashboard', ICON.chart, false, 0, hasV2Data ? 'NEW' : null)}
+        ${tabBtn('timetable', 'Timetable', ICON.calendar, false, 0, (state.currentSchedule && state.currentSchedule.length) ? null : null)}
         ${tabBtn('progress', 'Progress', ICON.trophy)}
         ${tabBtn('courses', 'Courses', ICON.book)}
         ${tabBtn('planner', 'Planner', ICON.target, false, plannedCount)}
@@ -189,7 +201,7 @@ function renderApp() {
       </div>
     </nav>
     ${state.importBanner ? `
-      <div class="import-banner ${state.importBanner.type}" style="position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 9999; box-shadow: 0 8px 24px rgba(0,0,0,0.2); margin: 0; width: fit-content; min-width: 320px;">
+      <div class="import-banner ${state.importBanner.type}" style="position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 9999; box-shadow: 0 8px 24px rgba(0,0,0,0.2); margin: 0; width: fit-content; min-width: 320px; max-width: 92vw;">
         <span style="display:flex; align-items:center;">${state.importBanner.type === 'success' ? ICON.check : ICON.warning}</span>
         <span>${esc(state.importBanner.text)}</span>
         <button class="icon-btn-hdr" data-action="dismiss-banner" style="margin-left:auto; cursor:pointer;">${svgWrap(ICON.close, 14)}</button>
@@ -201,13 +213,14 @@ function renderApp() {
   `;
 }
 
-function tabBtn(id, label, icon, isProTab, badgeCount) {
+function tabBtn(id, label, icon, isProTab, badgeCount, tag) {
   const isPro = state.user.plan === 'pro';
   const active = state.tab === id;
   let badge = '';
   if (isProTab && !isPro) badge = `<span style="width:12px;height:12px;display:inline-flex;color:var(--text-faint)">${ICON.lock}</span>`;
   if (isProTab && isPro) badge = `<span class="pro-badge">PRO</span>`;
   if (badgeCount > 0) badge = `<span class="count-badge">${badgeCount}</span>`;
+  if (tag) badge = `<span class="new-badge">${esc(tag)}</span>`;
   return `<button class="tab ${active ? 'active' : ''}" data-tab="${id}">${icon}${label}${badge}</button>`;
 }
 
@@ -217,10 +230,9 @@ function emptyView() {
       <div class="empty">
         <div class="empty-comment">// nothing here yet</div>
         <h3 class="empty-title">Import your courses to begin</h3>
-        <p class="empty-text">Paste your IULMS course list, upload a text file, or load the sample data — we'll parse everything (semesters, grades, prerequisites, GPA) automatically.</p>
+        <p class="empty-text">Use the bookmarklet, paste your IULMS course list, or upload a text file — we'll parse everything (semesters, grades, prerequisites, GPA) automatically.</p>
         <div class="empty-actions">
           <button class="btn btn-primary" data-action="open-import">${svgWrap(ICON.download)}Import data</button>
-          <button class="btn btn-secondary" data-action="load-sample">${svgWrap(ICON.spark)}Load sample</button>
         </div>
       </div>
     </div>
@@ -756,8 +768,8 @@ function renderImportModal() {
       <div class="bm-hero">
         <div class="bm-hero-icon">${svgWrap(ICON.zap, 22)}</div>
         <div class="bm-hero-text">
-          <div class="bm-hero-title">One-click IULMS import</div>
-          <div class="bm-hero-sub">Save the bookmark below, then open IULMS and click it. Your full course list — semesters, grades, credits, schedule (when registration is open) — imports automatically.</div>
+          <div class="bm-hero-title">One-click IULMS import <span class="reco-tag" style="margin-left:6px">v2.0 · super-bookmarklet</span></div>
+          <div class="bm-hero-sub">Save the bookmark below, open the IULMS <strong>Student Information Center</strong>, and click it. The bookmarklet silently fetches your <strong>profile, full course list, attendance, transcript, weekly schedule, midterm results, and exam schedule</strong> in one shot.</div>
         </div>
       </div>
 
@@ -793,14 +805,17 @@ function renderImportModal() {
           </div>
         </div>
 
-        <div class="bm-step">
+        <div class="bm-step bm-step-important">
           <div class="bm-step-num">2</div>
           <div class="bm-step-body">
-            <div class="bm-step-title">Open your IULMS course page</div>
-            <div class="bm-step-desc">Go to <span class="mono">lms.iuk.edu.pk</span>, log in, and open the page that shows your full course list with all 8 semesters (Student Information Center → Courses).</div>
+            <div class="bm-step-title">Open the <span style="color:var(--accent)">Student Information Center</span> dashboard</div>
+            <div class="bm-step-desc">
+              <strong style="color:var(--danger)">Important:</strong> you MUST be on the main SIC Dashboard (the page at <span class="mono">sic.php</span> that lists all 8 semesters of your degree).
+              Log in to <span class="mono">lms.iuk.edu.pk</span>, then click <strong>Student Information Center</strong> from the menu. Don't run the bookmark from any other page — it won't have access to your data.
+            </div>
             <div class="bm-step-visual">
               <div class="bm-anim-lms">
-                <div class="bm-anim-lms-head">IULMS / Student Information Center</div>
+                <div class="bm-anim-lms-head">IULMS / Student Information Center · <span style="color:var(--accent)">sic.php</span></div>
                 <div class="bm-anim-lms-table">
                   <div class="bm-anim-lms-row"><span>SEN101</span><span>Applied Physics</span><span class="pill">B+</span></div>
                   <div class="bm-anim-lms-row"><span>SEN102</span><span>Calculus</span><span class="pill">B+</span></div>
@@ -815,10 +830,10 @@ function renderImportModal() {
           <div class="bm-step-num">3</div>
           <div class="bm-step-body">
             <div class="bm-step-title">Click the bookmark</div>
-            <div class="bm-step-desc">With the IULMS course page open, click the "Import from IULMS" bookmark on your bookmarks bar. It will read your courses and redirect you back here with everything filled in.</div>
+            <div class="bm-step-desc">A small loading overlay appears while it silently pulls 6 pages in the background — your courses, attendance, transcript, schedule, midterm results, and exam schedule. When it's done, you land back here with everything filled in.</div>
             <div class="bm-step-visual">
               <div class="bm-anim-flow">
-                <div class="bm-anim-flow-card iulms">IULMS</div>
+                <div class="bm-anim-flow-card iulms">IULMS · 6 pages</div>
                 <div class="bm-anim-flow-arrow">${svgWrap(ICON.arrow, 18)}</div>
                 <div class="bm-anim-flow-card us">IUSemPlanner</div>
               </div>
@@ -835,7 +850,7 @@ function renderImportModal() {
 
       ${state.showBookmarkCode ? `
       <div class="bm-code-block">
-        <div class="bm-code-head"><span class="mono">bookmarklet source</span><button class="btn btn-sm btn-secondary" data-action="copy-bookmark-code">${svgWrap(ICON.download, 12)}Copy</button></div>
+        <div class="bm-code-head"><span class="mono">bookmarklet source · v2.0</span><button class="btn btn-sm btn-secondary" data-action="copy-bookmark-code">${svgWrap(ICON.download, 12)}Copy</button></div>
         <textarea readonly id="bookmarkCodeArea" class="field field-mono" rows="4">${esc(bmURL)}</textarea>
         <div class="bm-code-hint">Advanced: copy this and paste it as the URL of a new bookmark you create manually.</div>
       </div>
@@ -978,9 +993,6 @@ function renderSettingsModal() {
               <button class="btn btn-secondary" data-action="open-import" style="justify-content:flex-start">${svgWrap(ICON.download)}Import IULMS data</button>
             </div>
             <div class="settings-row">
-              <button class="btn btn-secondary" data-action="load-sample" style="justify-content:flex-start">${svgWrap(ICON.spark)}Load sample data</button>
-            </div>
-            <div class="settings-row">
               <button class="btn btn-danger" data-action="reset-data" style="justify-content:flex-start" ${!hasData ? 'disabled' : ''}>${svgWrap(ICON.trash)}Reset all data</button>
             </div>
           </div>
@@ -1025,6 +1037,417 @@ function renderAddCustomModal() {
             <button class="btn btn-primary" data-action="save-custom">Add and plan</button>
           </div>
         </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   v2.0 — DASHBOARD VIEW
+   Predictive student overview: profile, CGPA, attendance warnings,
+   midterm-based forecasts, upcoming exams.
+   ════════════════════════════════════════════════════════════════════════ */
+
+function renderDashboard() {
+  const hasAnyData = state.courses.length > 0
+    || state.transcript.length > 0
+    || state.attendance.length > 0;
+  if (!hasAnyData) return emptyView();
+
+  const profile = state.profile || {};
+  const userName = profile.name || 'Student';
+  const transcriptStats = computeTranscriptStats(state.transcript);
+  const attendanceSummary = computeAttendanceSummary(state.attendance);
+  const courseStats = state.courses.length > 0 ? computeStats(state.courses) : null;
+  const prediction = predictSemesterOutcome(state.transcript, state.midterms, state.courses);
+  const importedAt = state.dataTimestamp
+    ? new Date(state.dataTimestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+    : null;
+
+  /* ── Hero greeting + key stats ── */
+  const cgpa = transcriptStats ? transcriptStats.cgpa : (courseStats ? courseStats.gpa : null);
+  const credits = transcriptStats ? transcriptStats.totalCredits : (courseStats ? courseStats.completedCredits : 0);
+  const pct = courseStats ? courseStats.pctComplete : null;
+
+  const hero = `
+    <div class="dash-hero">
+      <div class="dash-hero-left">
+        <div class="dash-hello">${svgWrap(ICON.user, 12)} welcome back</div>
+        <h1 class="dash-name">${esc(userName)}</h1>
+        <div class="dash-sub">
+          ${importedAt ? `// last synced ${esc(importedAt)}` : '// no recent sync'}
+        </div>
+        <div class="dash-actions">
+          <button class="btn btn-primary" data-action="open-import">${svgWrap(ICON.refresh, 14)}Re-sync from IULMS</button>
+          <button class="btn btn-secondary" data-tab="timetable">${svgWrap(ICON.calendar, 14)}View timetable</button>
+        </div>
+      </div>
+      <div class="dash-hero-stats">
+        ${cgpa != null ? `
+          <div class="dash-stat accent">
+            <div class="dash-stat-label">${svgWrap(ICON.graduation, 12)} cgpa</div>
+            <div class="dash-stat-value">${cgpa}<span class="suffix">/4.0</span></div>
+            <div class="dash-stat-hint">${transcriptStats ? 'from official transcript' : 'estimate from grades'}</div>
+          </div>` : ''}
+        ${credits > 0 ? `
+          <div class="dash-stat info">
+            <div class="dash-stat-label">${svgWrap(ICON.layers, 12)} credits</div>
+            <div class="dash-stat-value">${credits}${pct != null ? `<span class="suffix">cr</span>` : ''}</div>
+            <div class="dash-stat-hint">${pct != null ? `${pct}% of ${TOTAL_CREDITS} cr degree` : 'completed so far'}</div>
+          </div>` : ''}
+        ${attendanceSummary && attendanceSummary.overallPct != null ? `
+          <div class="dash-stat ${attendanceSummary.overallPct < 80 ? 'danger' : attendanceSummary.overallPct < 85 ? 'warn' : 'accent'}">
+            <div class="dash-stat-label">${svgWrap(ICON.percent, 12)} attendance</div>
+            <div class="dash-stat-value">${Math.round(attendanceSummary.overallPct)}<span class="suffix">%</span></div>
+            <div class="dash-stat-hint">${attendanceSummary.flagged > 0 ? `${attendanceSummary.flagged} course${attendanceSummary.flagged > 1 ? 's' : ''} at risk` : 'all courses safe'}</div>
+          </div>` : ''}
+        ${prediction.scenarios ? `
+          <div class="dash-stat warn">
+            <div class="dash-stat-label">${svgWrap(ICON.trend, 12)} projected cgpa</div>
+            <div class="dash-stat-value">${prediction.scenarios.expected.cgpa || '—'}<span class="suffix">/4.0</span></div>
+            <div class="dash-stat-hint">if midterm trend continues</div>
+          </div>` : ''}
+      </div>
+    </div>
+  `;
+
+  /* ── Attendance warnings panel ── */
+  let attendancePanel = '';
+  if (attendanceSummary && attendanceSummary.list.length > 0) {
+    const sortedAtt = [...attendanceSummary.list].sort((a, b) => {
+      const order = { critical: 0, warning: 1, caution: 2, safe: 3, 'no-data': 4 };
+      return (order[a.status] - order[b.status]) || (a.pct - b.pct);
+    });
+    const rows = sortedAtt.map(a => {
+      const pctTxt = a.pct != null ? a.pct.toFixed(1) + '%' : '—';
+      const marginTxt = a.margin != null
+        ? (a.margin > 0
+            ? `${a.margin} class${a.margin > 1 ? 'es' : ''} buffer`
+            : a.margin === 0 ? 'at the line' : `${Math.abs(a.margin)} over the limit`)
+        : '';
+      const barPct = a.pct != null ? Math.min(100, a.pct) : 0;
+      return `
+        <div class="att-row att-${a.status}">
+          <div class="att-info">
+            <div class="att-course">${esc(a.course)}</div>
+            <div class="att-meta">${a.present}/${a.total || 0} sessions · ${a.absent} absent · ${marginTxt}</div>
+          </div>
+          <div class="att-bar-wrap">
+            <div class="att-bar"><div class="att-bar-fill" style="width:${barPct}%"></div></div>
+            <div class="att-pct">${pctTxt}</div>
+          </div>
+        </div>`;
+    }).join('');
+    attendancePanel = `
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">${svgWrap(ICON.percent)}Attendance health</div>
+          <div class="panel-meta">${attendanceSummary.flagged} flagged · debar limit 75%</div>
+        </div>
+        ${attendanceSummary.critical.length > 0 ? `
+          <div class="alert alert-danger">${ICON.warning}
+            <div>
+              <div class="alert-title">${attendanceSummary.critical.length} course${attendanceSummary.critical.length > 1 ? 's are' : ' is'} below 75% — debar risk</div>
+              <div class="alert-body">Already past the university limit. Speak to your faculty about make-up sessions immediately.</div>
+            </div>
+          </div>` : ''}
+        ${attendanceSummary.warning.length > 0 ? `
+          <div class="alert alert-warn">${ICON.warning}
+            <div>
+              <div class="alert-title">${attendanceSummary.warning.length} course${attendanceSummary.warning.length > 1 ? 's' : ''} between 75% and 80%</div>
+              <div class="alert-body">One more absence could push these into debar territory.</div>
+            </div>
+          </div>` : ''}
+        <div class="att-list">${rows}</div>
+      </div>`;
+  }
+
+  /* ── Midterm-based CGPA prediction panel ── */
+  let predictionPanel = '';
+  if (prediction.scenarios && prediction.semesterPredictions.length > 0) {
+    const courseRows = prediction.semesterPredictions.map(p => `
+      <div class="pred-row">
+        <div class="pred-info">
+          <div class="pred-code">${esc(p.code)}</div>
+          <div class="pred-name">${esc(p.name)}</div>
+        </div>
+        <div class="pred-mid">
+          ${p.midtermPct != null
+            ? `<div class="pred-mid-val">${p.midtermPct.toFixed(1)}%</div><div class="pred-mid-lbl">midterm</div>`
+            : `<div class="pred-mid-val muted">—</div><div class="pred-mid-lbl">no midterm</div>`}
+        </div>
+        <div class="pred-grades">
+          <span class="pred-grade pess">${nearestLetterFor(p.pessimisticPt)}</span>
+          <span class="pred-grade exp ${gradeColorClass(p.expectedPt)}">${p.expected || nearestLetterFor(p.expectedPt)}</span>
+          <span class="pred-grade opt">${nearestLetterFor(p.optimisticPt)}</span>
+        </div>
+      </div>`).join('');
+
+    const targetSliderHTML = renderTargetCGPASummary();
+    predictionPanel = `
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">${svgWrap(ICON.trend)}CGPA forecast</div>
+          <div class="panel-meta">based on ${prediction.semesterPredictions.length} current course${prediction.semesterPredictions.length > 1 ? 's' : ''} · ${prediction.semCredits} cr</div>
+        </div>
+        <div class="scenario-grid">
+          <div class="scenario-card pess">
+            <div class="scenario-label">pessimistic</div>
+            <div class="scenario-value">${prediction.scenarios.pessimistic.cgpa || '—'}</div>
+            <div class="scenario-sub">if you slip in finals</div>
+          </div>
+          <div class="scenario-card exp">
+            <div class="scenario-label">expected</div>
+            <div class="scenario-value">${prediction.scenarios.expected.cgpa || '—'}</div>
+            <div class="scenario-sub">if midterm pace holds</div>
+          </div>
+          <div class="scenario-card opt">
+            <div class="scenario-label">optimistic</div>
+            <div class="scenario-value">${prediction.scenarios.optimistic.cgpa || '—'}</div>
+            <div class="scenario-sub">if finals go well</div>
+          </div>
+        </div>
+        <div class="pred-list-head">
+          <span>course</span>
+          <span>midterm</span>
+          <span class="pred-legend">pessimistic · <strong>expected</strong> · optimistic</span>
+        </div>
+        <div class="pred-list">${courseRows}</div>
+        <div class="target-cgpa-block">
+          <div class="target-cgpa-title">${svgWrap(ICON.target, 14)} what would it take to reach a target CGPA?</div>
+          <div class="target-cgpa-slider">
+            <input type="range" min="2.0" max="4.0" step="0.05" value="${state.targetCGPA}" data-f="target-cgpa">
+            <span class="target-cgpa-val" id="target-cgpa-val">${state.targetCGPA.toFixed(2)}</span>
+          </div>
+          <div id="target-cgpa-summary">${targetSliderHTML}</div>
+        </div>
+      </div>`;
+  }
+
+  /* ── Exam schedule panel ── */
+  let examPanel = '';
+  if (state.examSchedule && state.examSchedule.length > 0) {
+    const examRows = state.examSchedule.map(e => `
+      <div class="exam-row">
+        <div class="exam-code">${esc(e.code)}</div>
+        <div class="exam-name">${esc(e.name || '')}</div>
+        <div class="exam-meta">
+          ${e.date ? `<span>${svgWrap(ICON.calendar, 11)} ${esc(e.date)}</span>` : ''}
+          ${e.time ? `<span>${svgWrap(ICON.clock, 11)} ${esc(e.time)}</span>` : ''}
+          ${e.venue ? `<span>${svgWrap(ICON.mappin, 11)} ${esc(e.venue)}</span>` : ''}
+        </div>
+      </div>`).join('');
+    examPanel = `
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">${svgWrap(ICON.calendar)}Upcoming exams</div>
+          <div class="panel-meta">${state.examSchedule.length} scheduled</div>
+        </div>
+        <div class="exam-list">${examRows}</div>
+      </div>`;
+  } else if (state.dataTimestamp) {
+    examPanel = `
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">${svgWrap(ICON.calendar)}Upcoming exams</div>
+          <div class="panel-meta">not yet published</div>
+        </div>
+        <div class="empty" style="padding:28px;">
+          <p class="muted" style="font-size:13px">The exam schedule wasn't available on IULMS at sync time. Re-sync once the exam timetable is uploaded.</p>
+        </div>
+      </div>`;
+  }
+
+  /* ── Transcript snapshot panel ── */
+  let transcriptPanel = '';
+  if (transcriptStats && transcriptStats.byGrade) {
+    const grades = Object.entries(transcriptStats.byGrade)
+      .sort((a, b) => (GRADE_POINTS[b[0]] || 0) - (GRADE_POINTS[a[0]] || 0));
+    const totalGraded = transcriptStats.coursesGraded || 1;
+    const bars = grades.map(([g, count]) => {
+      const w = (count / totalGraded) * 100;
+      const cls = (GRADE_POINTS[g] >= 3.3) ? 'g-strong' : (GRADE_POINTS[g] >= 2.5) ? 'g-mid' : (GRADE_POINTS[g] >= 1.0) ? 'g-low' : 'g-fail';
+      return `<div class="g-bar"><div class="g-bar-letter">${g}</div><div class="g-bar-track"><div class="g-bar-fill ${cls}" style="width:${w}%"></div></div><div class="g-bar-count">${count}</div></div>`;
+    }).join('');
+    transcriptPanel = `
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">${svgWrap(ICON.chart)}Grade distribution</div>
+          <div class="panel-meta">${transcriptStats.coursesGraded} graded course${transcriptStats.coursesGraded > 1 ? 's' : ''} · ${transcriptStats.totalCredits} cr</div>
+        </div>
+        <div class="grade-bars">${bars}</div>
+      </div>`;
+  }
+
+  return `
+    <div class="container">
+      ${hero}
+      <div class="dash-grid">
+        ${predictionPanel}
+        ${attendancePanel}
+        ${examPanel}
+        ${transcriptPanel}
+      </div>
+    </div>
+  `;
+}
+
+function gradeColorClass(point) {
+  if (point >= 3.3) return 'g-strong';
+  if (point >= 2.5) return 'g-mid';
+  if (point >= 1.0) return 'g-low';
+  return 'g-fail';
+}
+
+/* Re-rendered live on slider input — no full re-render needed. */
+function renderTargetCGPASummary() {
+  const prediction = predictSemesterOutcome(state.transcript, state.midterms, state.courses);
+  if (!prediction || !prediction.semCredits) {
+    return `<div class="muted" style="font-size:12px">Need current-semester courses with midterm results to compute.</div>`;
+  }
+  const needed = gpaNeededForTarget(state.transcript, prediction.semCredits, state.targetCGPA);
+  if (!needed) return `<div class="muted" style="font-size:12px">Not enough data.</div>`;
+  if (!needed.achievable) {
+    return `<div class="target-result danger">
+      ${ICON.warning}
+      <div>Target <strong>${state.targetCGPA.toFixed(2)}</strong> is not reachable this semester — you'd need ${needed.requiredSemGPA.toFixed(2)} sem GPA, above the 4.0 ceiling.</div>
+    </div>`;
+  }
+  return `<div class="target-result ok">
+    ${ICON.check}
+    <div>To hit a <strong>${state.targetCGPA.toFixed(2)}</strong> CGPA, average <strong>${needed.requiredSemGPA.toFixed(2)}</strong> this semester (≈ <strong>${needed.requiredLetter}</strong> in each course).</div>
+  </div>`;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   v2.0 — TIMETABLE VIEW
+   Renders the fetched IULMS Schedule.php data as a visual weekly grid.
+   ════════════════════════════════════════════════════════════════════════ */
+
+function renderTimetable() {
+  if (!state.currentSchedule || state.currentSchedule.length === 0) {
+    if (state.courses.length === 0) return emptyView();
+    return `
+      <div class="container">
+        <div class="page-head">
+          <div>
+            <h2 class="page-title">Weekly timetable</h2>
+            <p class="page-sub">// auto-built from your IULMS schedule</p>
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" data-action="open-import">${svgWrap(ICON.refresh, 14)}Re-sync</button>
+          </div>
+        </div>
+        <div class="empty" style="padding:48px 24px">
+          <div class="empty-comment">// no schedule data yet</div>
+          <h3 class="empty-title">Your weekly schedule hasn't been imported</h3>
+          <p class="empty-text">The v2 bookmarklet pulls your timetable from <span class="mono">sic/Schedule.php</span> automatically. Run it from the SIC dashboard to populate this view.</p>
+          <div class="empty-actions">
+            <button class="btn btn-primary" data-action="open-import">${svgWrap(ICON.download)}Set up bookmarklet</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  const blocks = scheduleEntriesToBlocks(state.currentSchedule);
+  if (blocks.length === 0) {
+    return `
+      <div class="container">
+        <div class="page-head">
+          <div>
+            <h2 class="page-title">Weekly timetable</h2>
+            <p class="page-sub">// raw schedule entries from IULMS</p>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">Schedule entries</div><div class="panel-meta">no time info detected</div></div>
+          ${state.currentSchedule.map(s => `
+            <div class="tt-raw-row">
+              <div class="tt-raw-day">${esc(s.rawDay || s.day || '?')}</div>
+              <div class="tt-raw-detail">${esc(s.raw || '')}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  /* Compute the time window dynamically to fit the schedule. */
+  let minMin = 8 * 60, maxMin = 18 * 60;
+  for (const b of blocks) {
+    minMin = Math.min(minMin, toMin(b.start));
+    maxMin = Math.max(maxMin, toMin(b.end));
+  }
+  const START_H = Math.floor(minMin / 60);
+  const END_H = Math.ceil(maxMin / 60);
+  const SLOT_H = 60;
+  const hours = [];
+  for (let h = START_H; h <= END_H; h++) hours.push(h);
+
+  /* Build day-by-day columns. */
+  const dayCols = DAYS.map(d => {
+    const blocksToday = blocks.filter(b => b.day === d.key)
+      .sort((a, b) => toMin(a.start) - toMin(b.start));
+    const blockHtml = blocksToday.map(b => {
+      const startMin = toMin(b.start) - START_H * 60;
+      const dur = toMin(b.end) - toMin(b.start);
+      const top = (startMin / 60) * SLOT_H;
+      const height = Math.max(28, (dur / 60) * SLOT_H - 2);
+      return `
+        <div class="tt-block c-${b.colorIdx}" style="top:${top + 1}px;height:${height}px" title="${esc(b.title)}${b.faculty ? ' · ' + esc(b.faculty) : ''}${b.location ? ' · ' + esc(b.location) : ''}">
+          <div class="b-code">${esc(b.title)}</div>
+          ${b.location ? `<div class="b-name">${esc(b.location)}</div>` : ''}
+          ${height > 50 && b.faculty ? `<div class="b-name" style="opacity:.85">${esc(b.faculty)}</div>` : ''}
+          <div class="b-time">${fmtTime(b.start)}–${fmtTime(b.end)}</div>
+        </div>`;
+    }).join('');
+    return `<div class="tt-day">${hours.map(() => '<div class="slot"></div>').join('')}${blockHtml}</div>`;
+  }).join('');
+
+  const timeCol = hours.map(h => `<div class="hour">${(h % 12 === 0 ? 12 : h % 12) + (h >= 12 ? 'PM' : 'AM')}</div>`).join('');
+
+  /* Compact list summary by day. */
+  const summaryByDay = DAYS.map(d => {
+    const blocksToday = blocks.filter(b => b.day === d.key);
+    if (blocksToday.length === 0) return `<div class="tt-summary-day empty"><div class="tt-summary-name">${d.full}</div><div class="tt-summary-meta">no classes</div></div>`;
+    const rows = blocksToday.sort((a, b) => toMin(a.start) - toMin(b.start)).map(b => `
+      <div class="tt-summary-row">
+        <span class="tt-summary-time">${fmtTime(b.start)}</span>
+        <span class="tt-summary-title">${esc(b.title)}</span>
+        ${b.location ? `<span class="tt-summary-loc">${esc(b.location)}</span>` : ''}
+      </div>`).join('');
+    return `<div class="tt-summary-day"><div class="tt-summary-name">${d.full}</div><div class="tt-summary-rows">${rows}</div></div>`;
+  }).join('');
+
+  return `
+    <div class="container">
+      <div class="page-head">
+        <div>
+          <h2 class="page-title">Weekly timetable</h2>
+          <p class="page-sub">// from your IULMS schedule · ${blocks.length} classes per week</p>
+        </div>
+        <div class="actions">
+          <button class="btn btn-secondary" data-action="open-import">${svgWrap(ICON.refresh, 14)}Re-sync</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">${svgWrap(ICON.calendar)}This week</div>
+          <div class="panel-meta">${(END_H - START_H)}h window · ${fmtTime(String(START_H).padStart(2,'0') + ':00')} – ${fmtTime(String(END_H).padStart(2,'0') + ':00')}</div>
+        </div>
+        <div class="timetable">
+          <div class="tt-header"><div>time</div>${DAYS.map(d => `<div>${d.label}</div>`).join('')}</div>
+          <div class="tt-body"><div class="tt-time">${timeCol}</div>${dayCols}</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Day-by-day breakdown</div>
+          <div class="panel-meta">order · time · venue</div>
+        </div>
+        <div class="tt-summary-grid">${summaryByDay}</div>
       </div>
     </div>
   `;

@@ -259,3 +259,263 @@ function computeRecommendations(courses) {
 
   return recs;
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   v2.0 PREDICTIVE ANALYTICS
+   Functions that operate on the new payload (transcript, attendance,
+   midterms, exam schedule, current schedule).
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── Transcript-driven CGPA ──
+   Computes the official-style CGPA directly from the IULMS transcript.
+   This is more accurate than the SIC-page-derived GPA because it uses
+   the points column straight from the source. */
+function computeTranscriptStats(transcript) {
+  if (!transcript || transcript.length === 0) return null;
+
+  let totalPoints = 0, totalCredits = 0;
+  let passedCount = 0, failedCount = 0;
+  const byGrade = {};
+
+  for (const t of transcript) {
+    const grade = (t.grade || '').toUpperCase();
+    const cr = t.credits || 0;
+    /* Skip W (withdrawn) and I (incomplete) — they don't count. */
+    if (!grade || grade === 'W' || grade === 'I' || grade === 'NC') continue;
+    if (GRADE_POINTS[grade] != null) {
+      totalPoints += GRADE_POINTS[grade] * cr;
+      totalCredits += cr;
+      byGrade[grade] = (byGrade[grade] || 0) + 1;
+      if (GRADE_POINTS[grade] >= 1.0) passedCount++;
+      else failedCount++;
+    }
+  }
+  const cgpa = totalCredits > 0 ? (totalPoints / totalCredits) : null;
+  return {
+    cgpa: cgpa != null ? cgpa.toFixed(2) : null,
+    cgpaRaw: cgpa,
+    totalPoints,
+    totalCredits,
+    passedCount,
+    failedCount,
+    byGrade,
+    coursesGraded: transcript.filter(t => t.grade && GRADE_POINTS[t.grade] != null).length,
+  };
+}
+
+/* ── Attendance risk classification ──
+   Returns { pct, status } where status is one of:
+     'safe' (≥85%), 'caution' (80–85), 'warning' (75–80), 'critical' (<75) */
+function attendanceStatus(record) {
+  const total = record.totalSessions || (record.present + record.absent);
+  if (total === 0) return { pct: null, status: 'no-data', total: 0 };
+  const pct = (record.present / total) * 100;
+  let status;
+  if (pct < ATTENDANCE_LIMITS.critical) status = 'critical';
+  else if (pct < ATTENDANCE_LIMITS.warning) status = 'warning';
+  else if (pct < ATTENDANCE_LIMITS.caution) status = 'caution';
+  else status = 'safe';
+  return { pct, status, total };
+}
+
+/* ── How many more classes can the student miss before falling below 75%? ── */
+function attendanceMargin(record) {
+  const total = record.totalSessions || (record.present + record.absent);
+  if (total === 0) return null;
+  /* present / total >= 0.75  =>  total - present <= present/3 (when treating
+     future absences). We approximate against the current snapshot. */
+  const minNeeded = Math.ceil(total * (ATTENDANCE_LIMITS.critical / 100));
+  return record.present - minNeeded;
+}
+
+/* ── Aggregate attendance summary for the dashboard. ── */
+function computeAttendanceSummary(attendance) {
+  if (!attendance || attendance.length === 0) return null;
+  const enriched = attendance.map(a => ({
+    ...a,
+    ...attendanceStatus(a),
+    margin: attendanceMargin(a),
+  }));
+  const critical = enriched.filter(e => e.status === 'critical');
+  const warning = enriched.filter(e => e.status === 'warning');
+  const caution = enriched.filter(e => e.status === 'caution');
+  const safe = enriched.filter(e => e.status === 'safe');
+  const totalSessions = enriched.reduce((s, e) => s + (e.totalSessions || 0), 0);
+  const totalPresent = enriched.reduce((s, e) => s + (e.present || 0), 0);
+  const overallPct = totalSessions > 0 ? (totalPresent / totalSessions) * 100 : null;
+  return {
+    list: enriched,
+    critical, warning, caution, safe,
+    overallPct,
+    flagged: critical.length + warning.length,
+  };
+}
+
+/* ── Midterm-based predictions ──
+   Given a midterm percentage, predict the likely final letter grade by
+   assuming the student maintains the same performance level. This is a
+   coarse heuristic — it does NOT replace the official cutoffs, which
+   vary by faculty, but it's useful for triage. */
+const MIDTERM_TO_GRADE_BANDS = [
+  { min: 87, grade: 'A',  point: 4.0 },
+  { min: 81, grade: 'A-', point: 3.7 },
+  { min: 77, grade: 'B+', point: 3.3 },
+  { min: 71, grade: 'B',  point: 3.0 },
+  { min: 67, grade: 'B-', point: 2.7 },
+  { min: 63, grade: 'C+', point: 2.3 },
+  { min: 57, grade: 'C',  point: 2.0 },
+  { min: 53, grade: 'C-', point: 1.7 },
+  { min: 47, grade: 'D+', point: 1.3 },
+  { min: 40, grade: 'D',  point: 1.0 },
+  { min: 0,  grade: 'F',  point: 0.0 },
+];
+
+function predictGradeFromPct(pct) {
+  if (pct == null || !Number.isFinite(pct)) return null;
+  for (const band of MIDTERM_TO_GRADE_BANDS) {
+    if (pct >= band.min) return { grade: band.grade, point: band.point };
+  }
+  return { grade: 'F', point: 0.0 };
+}
+
+/* ── Predict end-of-semester CGPA ──
+   Uses:
+     - Historical: total credits + points from transcript
+     - Current semester: in-progress courses with midterm-based predictions
+   Returns three scenarios: pessimistic, expected, optimistic. */
+function predictSemesterOutcome(transcript, midterms, currentCourses) {
+  const past = computeTranscriptStats(transcript);
+  const pastPoints = past ? past.totalPoints : 0;
+  const pastCredits = past ? past.totalCredits : 0;
+
+  /* Build map: course code -> midterm percentage */
+  const midPct = {};
+  for (const m of midterms || []) {
+    if (m.percentage != null) midPct[m.code] = m.percentage;
+  }
+
+  /* Identify current-semester courses we'll predict. These are courses
+     marked "In Progress" OR appearing in the midterms list. */
+  const inProgress = (currentCourses || []).filter(c => c.status === 'inProgress');
+  const byCode = {};
+  for (const c of inProgress) byCode[c.code] = c;
+  for (const code in midPct) {
+    if (!byCode[code]) {
+      byCode[code] = { code, name: '', credits: 3, status: 'inProgress' };
+    }
+  }
+  const semesterCourses = Object.values(byCode);
+  if (semesterCourses.length === 0) {
+    return {
+      pastCGPA: past ? past.cgpa : null,
+      semesterPredictions: [],
+      scenarios: null,
+    };
+  }
+
+  /* Build per-course predictions */
+  const semesterPredictions = semesterCourses.map(c => {
+    const pct = midPct[c.code];
+    const expected = pct != null ? predictGradeFromPct(pct) : null;
+    /* Optimistic: bump up one band; pessimistic: drop one band. */
+    let optimisticPt = expected ? Math.min(4.0, expected.point + 0.3) : 3.0;
+    let pessimisticPt = expected ? Math.max(0.0, expected.point - 0.7) : 1.7;
+    if (!expected) {
+      /* No midterm data — middle-of-road default. */
+      return {
+        code: c.code, name: c.name, credits: c.credits,
+        midtermPct: null, expected: null,
+        expectedPt: 3.0, optimisticPt: 4.0, pessimisticPt: 2.0,
+      };
+    }
+    return {
+      code: c.code, name: c.name, credits: c.credits,
+      midtermPct: pct,
+      expected: expected.grade,
+      expectedPt: expected.point,
+      optimisticPt, pessimisticPt,
+    };
+  });
+
+  const semCredits = semesterPredictions.reduce((s, p) => s + p.credits, 0);
+  function scenario(field) {
+    const semPoints = semesterPredictions.reduce((s, p) => s + p[field] * p.credits, 0);
+    const totalPts = pastPoints + semPoints;
+    const totalCr = pastCredits + semCredits;
+    return {
+      semGPA: semCredits > 0 ? (semPoints / semCredits).toFixed(2) : null,
+      cgpa: totalCr > 0 ? (totalPts / totalCr).toFixed(2) : null,
+    };
+  }
+
+  return {
+    pastCGPA: past ? past.cgpa : null,
+    pastCredits,
+    semesterPredictions,
+    semCredits,
+    scenarios: {
+      pessimistic: scenario('pessimisticPt'),
+      expected: scenario('expectedPt'),
+      optimistic: scenario('optimisticPt'),
+    },
+  };
+}
+
+/* ── What final grades do you need to hit a target CGPA? ──
+   Returns the required per-credit GPA for current semester courses. */
+function gpaNeededForTarget(transcript, currentCredits, targetCGPA) {
+  const past = computeTranscriptStats(transcript);
+  if (!past || currentCredits <= 0) return null;
+  const totalCr = past.totalCredits + currentCredits;
+  const requiredPoints = targetCGPA * totalCr - past.totalPoints;
+  const requiredSemGPA = requiredPoints / currentCredits;
+  return {
+    requiredSemGPA: Math.max(0, requiredSemGPA),
+    achievable: requiredSemGPA <= 4.0,
+    requiredLetter: nearestLetterFor(requiredSemGPA),
+  };
+}
+
+function nearestLetterFor(point) {
+  if (point > 4.0) return 'A+ (impossible)';
+  let best = 'F';
+  let bestDelta = Infinity;
+  for (const [letter, pt] of Object.entries(GRADE_POINTS)) {
+    if (pt >= point && (pt - point) < bestDelta) {
+      best = letter; bestDelta = pt - point;
+    }
+  }
+  return best;
+}
+
+/* ── Map fetched schedule entries to a planner-style structure ──
+   so the visual timetable can render them with the same engine. */
+function scheduleEntriesToBlocks(schedule) {
+  if (!schedule || schedule.length === 0) return [];
+  const blocks = [];
+  /* Pre-pick a color index per unique course title or EDP. */
+  const colorMap = {};
+  let nextColor = 0;
+  for (const s of schedule) {
+    const key = s.edpCode || s.courseTitle || s.raw;
+    if (!colorMap[key]) {
+      colorMap[key] = nextColor % 8;
+      nextColor++;
+    }
+  }
+  for (const s of schedule) {
+    if (!s.day || !s.startTime || !s.endTime) continue;
+    const key = s.edpCode || s.courseTitle || s.raw;
+    blocks.push({
+      day: s.day,
+      start: s.startTime,
+      end: s.endTime,
+      title: s.courseTitle || '—',
+      faculty: s.faculty || '',
+      location: s.location || '',
+      edpCode: s.edpCode || '',
+      colorIdx: colorMap[key] || 0,
+    });
+  }
+  return blocks;
+}

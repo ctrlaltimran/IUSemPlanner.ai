@@ -3,8 +3,17 @@
 
 const defaultState = {
   user: null,
-  tab: 'progress',
+  tab: 'dashboard',
   courses: [],
+  /* v2.0 — scraped from the super-bookmarklet */
+  profile: null,           /* { name } */
+  transcript: [],          /* [{ code, title, credits, grade, points }, …] */
+  attendance: [],          /* [{ course, totalSessions, present, absent }, …] */
+  currentSchedule: [],     /* [{ day, courseTitle, faculty, location, edpCode, startTime, endTime, raw }, …] */
+  midterms: [],            /* [{ code, name, total, obtained, percentage, raw }, …] */
+  examSchedule: [],        /* [{ code, name, date, time, venue }, …] */
+  dataTimestamp: null,     /* ms epoch of last successful import */
+
   filter: 'all',
   search: '',
   modal: null,
@@ -16,6 +25,7 @@ const defaultState = {
   ai: { summary: null, recommendations: null, loadingSummary: false, loadingRecs: false, errorSummary: null, errorRecs: null },
   showBookmarkCode: false,
   importBanner: null,
+  targetCGPA: 3.5,         /* user-adjustable CGPA goal for predictions */
 };
 
 // Load saved data from browser storage
@@ -29,14 +39,27 @@ const state = { ...defaultState, ...savedState };
 // Reset UI-only states on reload so modals don't get stuck open
 state.modal = null;
 state.uploadProcessing = false;
+/* If saved tab no longer exists in v2 (old "progress" was default), keep it. */
+if (!['dashboard', 'timetable', 'progress', 'courses', 'planner', 'ai'].includes(state.tab)) {
+  state.tab = 'dashboard';
+}
 
 // Helper function to auto-save to browser storage
 function saveLocal() {
   try {
     localStorage.setItem('iusp_data', JSON.stringify({
       user: state.user,
+      tab: state.tab,
       courses: state.courses,
-      aiSettings: state.aiSettings
+      profile: state.profile,
+      transcript: state.transcript,
+      attendance: state.attendance,
+      currentSchedule: state.currentSchedule,
+      midterms: state.midterms,
+      examSchedule: state.examSchedule,
+      dataTimestamp: state.dataTimestamp,
+      aiSettings: state.aiSettings,
+      targetCGPA: state.targetCGPA,
     }));
   } catch (e) { }
 }
@@ -99,6 +122,7 @@ async function handleTextFile(file) {
       throw new Error('Could not parse any courses from this file. Make sure it contains your IULMS course list.');
     }
     state.courses = parsed;
+    state.dataTimestamp = Date.now();
     state.modal = null;
     state.uploadProcessing = false;
     render();
@@ -121,6 +145,7 @@ async function handleImageFile(file) {
       throw new Error('Vision AI could not extract a recognizable course list. Try a clearer screenshot.');
     }
     state.courses = parsed;
+    state.dataTimestamp = Date.now();
     state.modal = null;
     state.uploadProcessing = false;
     render();
@@ -208,7 +233,7 @@ document.addEventListener('click', (e) => {
     case 'logout':
       state.user = null;
 
-      state.tab = 'progress';
+      state.tab = 'dashboard';
       state.ai = { summary: null, recommendations: null, loadingSummary: false, loadingRecs: false, errorSummary: null, errorRecs: null };
       render();
       break;
@@ -257,6 +282,7 @@ document.addEventListener('click', (e) => {
         return;
       }
       state.courses = parsed;
+      state.dataTimestamp = Date.now();
       state.modal = null;
       alert('✓ Imported ' + parsed.length + ' courses successfully.');
       render();
@@ -265,15 +291,23 @@ document.addEventListener('click', (e) => {
 
     case 'load-sample':
       state.courses = parseIULMS(IULMS_SAMPLE);
+      state.dataTimestamp = Date.now();
       state.modal = null;
       render();
       break;
 
     case 'reset-data':
-      if (!confirm('Reset all data? This will clear all your imported courses and planned schedule. This cannot be undone.')) return;
+      if (!confirm('Reset all data? This will clear your courses, transcript, attendance, schedule and all other imported data. This cannot be undone.')) return;
       state.courses = [];
+      state.profile = null;
+      state.transcript = [];
+      state.attendance = [];
+      state.currentSchedule = [];
+      state.midterms = [];
+      state.examSchedule = [];
+      state.dataTimestamp = null;
       state.modal = null;
-      state.tab = 'progress';
+      state.tab = 'dashboard';
       state.ai = { summary: null, recommendations: null, loadingSummary: false, loadingRecs: false, errorSummary: null, errorRecs: null };
       render();
       break;
@@ -442,6 +476,22 @@ document.addEventListener('input', (e) => {
     return;
   }
 
+  if (t.dataset.f === 'target-cgpa') {
+    const v = parseFloat(t.value);
+    if (Number.isFinite(v)) {
+      state.targetCGPA = Math.max(0, Math.min(4, v));
+      /* Update the visible value without a full re-render for slider smoothness. */
+      const lbl = document.getElementById('target-cgpa-val');
+      if (lbl) lbl.textContent = state.targetCGPA.toFixed(2);
+      const summary = document.getElementById('target-cgpa-summary');
+      if (summary && typeof renderTargetCGPASummary === 'function') {
+        summary.innerHTML = renderTargetCGPASummary();
+      }
+      saveLocal();
+    }
+    return;
+  }
+
   // AI settings — text/number inputs (no re-render to keep focus)
   if (t.dataset.setting === 'apiKey') {
     state.aiSettings.apiKey = t.value;
@@ -482,20 +532,37 @@ function checkURLImport() {
 
   // 3. Process the data
   try {
-    const courses = parseIULMSBookmarkData(importData);
+    const result = parseIULMSBookmarkData(importData);
 
-    if (courses.length === 0) {
-      alert('Import failed: No courses could be read from the bookmark data.');
+    if (!result || (result.courses.length === 0 && result.transcript.length === 0)) {
+      alert('Import failed: No data could be read from the bookmark payload.');
       return false;
     }
 
-    // 4. Success! Load data and bypass the login screen
-    state.courses = courses;
-    state.user = { plan: 'free' }; // Automatically log them in to the dash
-    state.tab = 'progress';
-    state.importBanner = { type: 'success', text: `Successfully imported ${courses.length} courses from IULMS.` };
+    // 4. Success! Load every field and bypass the login screen
+    state.courses = result.courses || [];
+    state.profile = result.profile || null;
+    state.transcript = result.transcript || [];
+    state.attendance = result.attendance || [];
+    state.currentSchedule = result.schedule || [];
+    state.midterms = result.midterms || [];
+    state.examSchedule = result.examSchedule || [];
+    state.dataTimestamp = Date.now();
 
-    setTimeout(() => { state.importBanner = null; render(); }, 5000);
+    state.user = { plan: 'free' };
+    state.tab = 'dashboard';
+
+    const name = state.profile && state.profile.name;
+    const bits = [];
+    if (state.courses.length) bits.push(`${state.courses.length} courses`);
+    if (state.transcript.length) bits.push(`${state.transcript.length} transcript records`);
+    if (state.attendance.length) bits.push(`${state.attendance.length} attendance entries`);
+    state.importBanner = {
+      type: 'success',
+      text: `Welcome${name ? ', ' + name.split(' ')[0] : ''} — imported ${bits.join(' · ') || 'your IULMS data'}.`,
+    };
+
+    setTimeout(() => { state.importBanner = null; render(); }, 6000);
     return true;
 
   } catch (e) {
