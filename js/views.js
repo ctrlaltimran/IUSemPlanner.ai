@@ -177,8 +177,8 @@ function renderApp() {
           <span class="brand-mark">IU</span>
           <span class="brand-name">SemPlanner.ai</span>
           ${firstName
-            ? `<span class="brand-meta">${svgWrap(ICON.user, 12)}${esc(firstName)}</span>`
-            : `<span class="brand-meta">${svgWrap(ICON.hash, 12)}${state.courses.length} courses</span>`}
+      ? `<span class="brand-meta">${svgWrap(ICON.user, 12)}${esc(firstName)}</span>`
+      : `<span class="brand-meta">${svgWrap(ICON.hash, 12)}${state.courses.length} courses</span>`}
         </div>
         <div class="header-right">
           <span class="plan-pill ${isPro ? 'pro' : 'free'}">
@@ -805,13 +805,13 @@ function renderImportModal() {
           </div>
         </div>
 
-        <div class="bm-step bm-step-important">
+       <div class="bm-step bm-step-important">
           <div class="bm-step-num">2</div>
           <div class="bm-step-body">
-            <div class="bm-step-title">Open the <span style="color:var(--accent)">Student Information Center</span> dashboard</div>
+            <div class="bm-step-title">Open your <span style="color:var(--accent)">Registration</span> page</div>
             <div class="bm-step-desc">
-              <strong style="color:var(--danger)">Important:</strong> you MUST be on the main SIC Dashboard (the page at <span class="mono">sic.php</span> that lists all 8 semesters of your degree).
-              Log in to <span class="mono">lms.iuk.edu.pk</span>, then click <strong>Student Information Center</strong> from the menu. Don't run the bookmark from any other page — it won't have access to your data.
+              <strong style="color:var(--danger)">Important:</strong> you MUST be on your <strong>Registration / Course List</strong> page (the page that shows the large tables of all 8 semesters of your degree).
+              Log in to <span class="mono">iulms.edu.pk</span>, navigate to your active Registration page, and ensure your courses are visible on screen before clicking the bookmark.
             </div>
             <div class="bm-step-visual">
               <div class="bm-anim-lms">
@@ -1122,8 +1122,8 @@ function renderDashboard() {
       const pctTxt = a.pct != null ? a.pct.toFixed(1) + '%' : '—';
       const marginTxt = a.margin != null
         ? (a.margin > 0
-            ? `${a.margin} class${a.margin > 1 ? 'es' : ''} buffer`
-            : a.margin === 0 ? 'at the line' : `${Math.abs(a.margin)} over the limit`)
+          ? `${a.margin} class${a.margin > 1 ? 'es' : ''} buffer`
+          : a.margin === 0 ? 'at the line' : `${Math.abs(a.margin)} over the limit`)
         : '';
       const barPct = a.pct != null ? Math.min(100, a.pct) : 0;
       return `
@@ -1173,8 +1173,8 @@ function renderDashboard() {
         </div>
         <div class="pred-mid">
           ${p.midtermPct != null
-            ? `<div class="pred-mid-val">${p.midtermPct.toFixed(1)}%</div><div class="pred-mid-lbl">midterm</div>`
-            : `<div class="pred-mid-val muted">—</div><div class="pred-mid-lbl">no midterm</div>`}
+        ? `<div class="pred-mid-val">${p.midtermPct.toFixed(1)}%</div><div class="pred-mid-lbl">midterm</div>`
+        : `<div class="pred-mid-val muted">—</div><div class="pred-mid-lbl">no midterm</div>`}
         </div>
         <div class="pred-grades">
           <span class="pred-grade pess">${nearestLetterFor(p.pessimisticPt)}</span>
@@ -1434,7 +1434,7 @@ function renderTimetable() {
       <div class="panel">
         <div class="panel-head">
           <div class="panel-title">${svgWrap(ICON.calendar)}This week</div>
-          <div class="panel-meta">${(END_H - START_H)}h window · ${fmtTime(String(START_H).padStart(2,'0') + ':00')} – ${fmtTime(String(END_H).padStart(2,'0') + ':00')}</div>
+          <div class="panel-meta">${(END_H - START_H)}h window · ${fmtTime(String(START_H).padStart(2, '0') + ':00')} – ${fmtTime(String(END_H).padStart(2, '0') + ':00')}</div>
         </div>
         <div class="timetable">
           <div class="tt-header"><div>time</div>${DAYS.map(d => `<div>${d.label}</div>`).join('')}</div>

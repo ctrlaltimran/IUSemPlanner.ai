@@ -1,19 +1,13 @@
-/* SUPER-BOOKMARKLET v2.0
+/* SUPER-BOOKMARKLET v2.1
    Silently scrapes the entire IULMS student profile in the background:
      1. User name (from sic.php — current page)
-     2. Course list (from sic.php — current page tables)
-     3. Attendance (sic/StudentAttendance.php)
-     4. Transcript (sic/Transcript.php)
-     5. Weekly schedule (sic/Schedule.php)
-     6. Midterm results (sic/ExamResultMid.php)
-     7. Exam schedule (sic/examschedule.php) — optional, may not exist
-
-   Bundles everything into a single JSON payload, Base64-encodes it,
-   and redirects to https://ctrlaltimran.com/IUSemPlanner/#import=[PAYLOAD].
-
-   CRITICAL: BOOKMARKLET_SOURCE below must contain NO `//` line comments —
-   they would survive URL-encoding and swallow the rest of the code. Use
-   only block comments inside the bookmarklet body. */
+     2. Course list (from current page tables)
+     3. Attendance (/sic/StudentAttendance.php)
+     4. Transcript (/sic/Transcript.php)
+     5. Weekly schedule (/sic/Schedule.php)
+     6. Midterm results (/sic/ExamResultMid.php)
+     7. Exam schedule (/sic/examschedule.php) — optional, may not exist
+*/
 
 const BOOKMARKLET_TARGET = 'https://ctrlaltimran.com/IUSemPlanner/';
 
@@ -39,16 +33,16 @@ const BOOKMARKLET_SOURCE = `(async function(){
   }
   function failExit(msg){
     removeOverlay();
-    alert('IUSemPlanner\\n\\n' + msg + '\\n\\nMake sure you are on the IULMS Student Information Center (SIC) Dashboard \u2014 the page at sic.php that lists all 8 semesters.');
+    alert('IUSemPlanner\\n\\n' + msg + '\\n\\nMake sure you are on the Registration page where your Course List is visible.');
   }
 
   try {
     showOverlay();
 
-    /* Verify we are on the SIC dashboard. */
-    var onSIC = /sic\\.php/i.test(location.pathname) || document.querySelector('div.logininfo');
-    if(!onSIC){
-      failExit('This bookmark only works on the Student Information Center page.');
+    /* Verify we are on a page with tables (Registration page) */
+    var hasTables = document.querySelectorAll('table').length > 0;
+    if(!hasTables){
+      failExit('This bookmark only works on a page with your course tables (like the Registration page).');
       return;
     }
 
@@ -123,7 +117,7 @@ const BOOKMARKLET_SOURCE = `(async function(){
     /* === 3. ATTENDANCE === */
     setStatus('Fetching attendance records\u2026', 28);
     try {
-      var doc = await fetchDoc('sic/StudentAttendance.php');
+      var doc = await fetchDoc('/sic/StudentAttendance.php');
       if(doc){
         var attRows = doc.querySelectorAll('table.attendance-table tr.attendanceRow');
         attRows.forEach(function(r){
@@ -146,7 +140,7 @@ const BOOKMARKLET_SOURCE = `(async function(){
     /* === 4. TRANSCRIPT === */
     setStatus('Fetching transcript\u2026', 46);
     try {
-      var doc = await fetchDoc('sic/Transcript.php');
+      var doc = await fetchDoc('/sic/Transcript.php');
       if(doc){
         var trRows = doc.querySelectorAll('table.transcript-table tr.transcript-content');
         trRows.forEach(function(r){
@@ -167,11 +161,8 @@ const BOOKMARKLET_SOURCE = `(async function(){
     /* === 5. SCHEDULE === */
     setStatus('Fetching weekly schedule\u2026', 64);
     try {
-      var doc = await fetchDoc('sic/Schedule.php');
+      var doc = await fetchDoc('/sic/Schedule.php');
       if(doc){
-        /* The schedule page typically has <tr> rows where one cell contains a
-           <span class="dayStyle"> with the day name, and adjacent/parent cells
-           with class .detailsStyle contain the course details. */
         var dayCells = doc.querySelectorAll('span.dayStyle, td.dayStyle');
         dayCells.forEach(function(daySpan){
           var dayText = cellText(daySpan);
@@ -191,7 +182,6 @@ const BOOKMARKLET_SOURCE = `(async function(){
             });
           });
         });
-        /* Fallback: if no .dayStyle found, try to read a generic schedule table. */
         if(payload.schedule.length === 0){
           var schedTables = doc.querySelectorAll('table');
           schedTables.forEach(function(t){
@@ -216,7 +206,7 @@ const BOOKMARKLET_SOURCE = `(async function(){
     /* === 6. MIDTERM RESULTS === */
     setStatus('Fetching midterm results\u2026', 80);
     try {
-      var doc = await fetchDoc('sic/ExamResultMid.php');
+      var doc = await fetchDoc('/sic/ExamResultMid.php');
       if(doc){
         var midTables = doc.querySelectorAll('table.tblAttendance');
         if(midTables.length === 0){
@@ -239,10 +229,10 @@ const BOOKMARKLET_SOURCE = `(async function(){
       }
     } catch(e){}
 
-    /* === 7. EXAM SCHEDULE (optional, may not exist) === */
+    /* === 7. EXAM SCHEDULE === */
     setStatus('Checking exam schedule\u2026', 92);
     try {
-      var doc = await fetchDoc('sic/examschedule.php');
+      var doc = await fetchDoc('/sic/examschedule.php');
       if(doc){
         var bodyText = (doc.body && (doc.body.innerText || doc.body.textContent) || '').toLowerCase();
         var notAvail = bodyText.indexOf('not available') !== -1 || bodyText.indexOf('no exam') !== -1;
@@ -266,7 +256,6 @@ const BOOKMARKLET_SOURCE = `(async function(){
         }
       }
     } catch(e){
-      /* Graceful \u2014 exam schedule is allowed to fail entirely. */
     }
 
     /* === ENCODE AND REDIRECT === */
@@ -293,12 +282,11 @@ const BOOKMARKLET_SOURCE = `(async function(){
 
   } catch(err){
     removeOverlay();
-    alert('IUSemPlanner error:\\n' + (err && err.message ? err.message : err) + '\\n\\nMake sure you are on the IULMS Student Information Center (SIC) Dashboard.');
+    alert('IUSemPlanner error:\\n' + (err && err.message ? err.message : err) + '\\n\\nMake sure you are on the Registration page.');
   }
 })();`;
 
 function buildBookmarkletURL() {
-  /* No aggressive minification — encodeURIComponent safely handles whitespace. */
   let code = BOOKMARKLET_SOURCE.trim();
   return 'javascript:' + encodeURIComponent(code);
 }
