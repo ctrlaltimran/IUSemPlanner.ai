@@ -1069,6 +1069,12 @@ function renderAddCustomModal() {
    midterm-based forecasts, upcoming exams.
    ════════════════════════════════════════════════════════════════════════ */
 
+/* ════════════════════════════════════════════════════════════════════════
+   v2.0 — DASHBOARD VIEW
+   Predictive student overview: profile, CGPA, attendance warnings,
+   midterm-based forecasts, upcoming exams.
+   ════════════════════════════════════════════════════════════════════════ */
+
 function renderDashboard() {
   const hasAnyData = state.courses.length > 0
     || state.transcript.length > 0
@@ -1184,103 +1190,171 @@ function renderDashboard() {
   }
 
   /* ── Midterm-based CGPA prediction panel ── */
-  const courseRows = prediction.semesterPredictions.map(p => {
-    let currentMarks = p.midtermRaw || 0;
-    let remainingPool = 80; // 100 total - 20 midterm
-    let extraMarks = '';
+  let predictionPanel = '';
+  if (prediction.scenarios && prediction.semesterPredictions.length > 0) {
+    const courseRows = prediction.semesterPredictions.map(p => {
+      let currentMarks = p.midtermRaw || 0;
+      let remainingPool = 80; // 100 total - 20 midterm
+      let extraMarks = '';
 
-    // 1. Calculate Quizzes and Projects
-    if (p.quizzes !== undefined || p.project !== undefined) {
-      const q = (p.quizzes != null && p.quizzes > 0) ? p.quizzes : 0;
-      const pr = (p.project != null && p.project > 0) ? p.project : 0;
+      // 1. Calculate Quizzes and Projects
+      if (p.quizzes !== undefined || p.project !== undefined) {
+        const q = (p.quizzes != null && p.quizzes > 0) ? p.quizzes : 0;
+        const pr = (p.project != null && p.project > 0) ? p.project : 0;
 
-      if (q > 0) { currentMarks += q; remainingPool -= 20; }
-      if (pr > 0) { currentMarks += pr; remainingPool -= 20; }
+        if (q > 0) { currentMarks += q; remainingPool -= 20; }
+        if (pr > 0) { currentMarks += pr; remainingPool -= 20; }
 
-      const qTxt = q > 0 ? q : 'not marked';
-      const prTxt = pr > 0 ? pr : 'not marked';
-      extraMarks = `<div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Quizzes/Ass: <strong style="color:var(--text)">${qTxt}</strong> · Project: <strong style="color:var(--text)">${prTxt}</strong></div>`;
-    }
+        const qTxt = q > 0 ? q : 'not marked';
+        const prTxt = pr > 0 ? pr : 'not marked';
+        extraMarks = `<div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Quizzes/Ass: <strong style="color:var(--text)">${qTxt}</strong> · Project: <strong style="color:var(--text)">${prTxt}</strong></div>`;
+      }
 
-    // 2. The 40-Mark Final Target Calculator
-    let finalsNote = '';
-    if (p.expected && typeof MIDTERM_TO_GRADE_BANDS !== 'undefined') {
-      const band = MIDTERM_TO_GRADE_BANDS.find(b => b.grade === p.expected);
-      if (band) {
-        const neededForExpected = Math.max(0, band.min - currentMarks);
+      // 2. The 40-Mark Final Target Calculator
+      let finalsNote = '';
+      if (p.expected && typeof MIDTERM_TO_GRADE_BANDS !== 'undefined') {
+        const band = MIDTERM_TO_GRADE_BANDS.find(b => b.grade === p.expected);
+        if (band) {
+          const neededForExpected = Math.max(0, band.min - currentMarks);
 
-        if (neededForExpected <= 0) {
-          finalsNote = `<div style="font-size:11px; color:#059669; margin-top:4px; font-weight:600;">✨ Secured a ${p.expected} already!</div>`;
-        } else if (remainingPool === 40) {
-          // Quiz and Project are marked, ONLY the 40-mark Final is left!
-          finalsNote = `<div style="font-size:11px; color:#d97706; margin-top:4px; font-weight:600; background:#fffbeb; padding:2px 6px; border-radius:4px; display:inline-block; border:1px solid #fde68a;">🎯 Need ${neededForExpected}/40 on Final for a ${p.expected}</div>`;
-        } else {
-          // Quizzes or Projects are still 0/unmarked, so they have more than just the final left
-          finalsNote = `<div style="font-size:11px; color:var(--accent); margin-top:4px; font-weight:500;">Need ${neededForExpected} more marks (out of ${remainingPool} remaining) for a ${p.expected}</div>`;
+          if (neededForExpected <= 0) {
+            finalsNote = `<div style="font-size:11px; color:#059669; margin-top:4px; font-weight:600;">✨ Secured a ${p.expected} already!</div>`;
+          } else if (remainingPool === 40) {
+            finalsNote = `<div style="font-size:11px; color:#d97706; margin-top:4px; font-weight:600; background:#fffbeb; padding:2px 6px; border-radius:4px; display:inline-block; border:1px solid #fde68a;">🎯 Need ${neededForExpected}/40 on Final for a ${p.expected}</div>`;
+          } else {
+            finalsNote = `<div style="font-size:11px; color:var(--accent); margin-top:4px; font-weight:500;">Need ${neededForExpected} more marks (out of ${remainingPool} remaining) for a ${p.expected}</div>`;
+          }
         }
       }
-    }
 
-    return `
-      <div class="pred-row">
-        <div class="pred-info">
-          <div class="pred-code">${esc(p.code)}</div>
-          <div class="pred-name">${esc(p.name)}</div>
-          ${extraMarks}
-          ${finalsNote}
-        </div>
-        <div class="pred-mid">
-          ${p.midtermPct != null
-        ? `<div class="pred-mid-val">${p.midtermRaw}/20</div><div class="pred-mid-lbl">${p.midtermPct.toFixed(0)}%</div>`
-        : `<div class="pred-mid-val muted">—</div><div class="pred-mid-lbl">no midterm</div>`}
-        </div>
-        <div class="pred-grades">
-          <span class="pred-grade pess">${nearestLetterFor(p.pessimisticPt)}</span>
-          <span class="pred-grade exp ${gradeColorClass(p.expectedPt)}">${p.expected || nearestLetterFor(p.expectedPt)}</span>
-          <span class="pred-grade opt">${nearestLetterFor(p.optimisticPt)}</span>
-        </div>
-      </div>`;
-  }).join('');
+      return `
+        <div class="pred-row">
+          <div class="pred-info">
+            <div class="pred-code">${esc(p.code)}</div>
+            <div class="pred-name">${esc(p.name)}</div>
+            ${extraMarks}
+            ${finalsNote}
+          </div>
+          <div class="pred-mid">
+            ${p.midtermPct != null
+          ? `<div class="pred-mid-val">${p.midtermRaw}/20</div><div class="pred-mid-lbl">${p.midtermPct.toFixed(0)}%</div>`
+          : `<div class="pred-mid-val muted">—</div><div class="pred-mid-lbl">no midterm</div>`}
+          </div>
+          <div class="pred-grades">
+            <span class="pred-grade pess">${nearestLetterFor(p.pessimisticPt)}</span>
+            <span class="pred-grade exp ${gradeColorClass(p.expectedPt)}">${p.expected || nearestLetterFor(p.expectedPt)}</span>
+            <span class="pred-grade opt">${nearestLetterFor(p.optimisticPt)}</span>
+          </div>
+        </div>`;
+    }).join('');
 
-  const targetSliderHTML = renderTargetCGPASummary();
-  predictionPanel = `
-      <div class="panel">
-        <div class="panel-head">
-          <div class="panel-title">${svgWrap(ICON.trend)}CGPA forecast</div>
-          <div class="panel-meta">based on ${prediction.semesterPredictions.length} current course${prediction.semesterPredictions.length > 1 ? 's' : ''} · ${prediction.semCredits} cr</div>
-        </div>
-        <div class="scenario-grid">
-          <div class="scenario-card pess">
-            <div class="scenario-label">pessimistic</div>
-            <div class="scenario-value">${prediction.scenarios.pessimistic.cgpa || '—'}</div>
-            <div class="scenario-sub">if you slip in finals</div>
+    const targetSliderHTML = renderTargetCGPASummary();
+    predictionPanel = `
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">${svgWrap(ICON.trend)}CGPA forecast</div>
+            <div class="panel-meta">based on ${prediction.semesterPredictions.length} current course${prediction.semesterPredictions.length > 1 ? 's' : ''} · ${prediction.semCredits} cr</div>
           </div>
-          <div class="scenario-card exp">
-            <div class="scenario-label">expected</div>
-            <div class="scenario-value">${prediction.scenarios.expected.cgpa || '—'}</div>
-            <div class="scenario-sub">if midterm pace holds</div>
+          <div class="scenario-grid">
+            <div class="scenario-card pess">
+              <div class="scenario-label">pessimistic</div>
+              <div class="scenario-value">${prediction.scenarios.pessimistic.cgpa || '—'}</div>
+              <div class="scenario-sub">if you slip in finals</div>
+            </div>
+            <div class="scenario-card exp">
+              <div class="scenario-label">expected</div>
+              <div class="scenario-value">${prediction.scenarios.expected.cgpa || '—'}</div>
+              <div class="scenario-sub">if midterm pace holds</div>
+            </div>
+            <div class="scenario-card opt">
+              <div class="scenario-label">optimistic</div>
+              <div class="scenario-value">${prediction.scenarios.optimistic.cgpa || '—'}</div>
+              <div class="scenario-sub">if finals go well</div>
+            </div>
           </div>
-          <div class="scenario-card opt">
-            <div class="scenario-label">optimistic</div>
-            <div class="scenario-value">${prediction.scenarios.optimistic.cgpa || '—'}</div>
-            <div class="scenario-sub">if finals go well</div>
+          <div class="pred-list-head">
+            <span>course</span>
+            <span>midterm</span>
+            <span class="pred-legend">pessimistic · <strong>expected</strong> · optimistic</span>
           </div>
-        </div>
-        <div class="pred-list-head">
-          <span>course</span>
-          <span>midterm</span>
-          <span class="pred-legend">pessimistic · <strong>expected</strong> · optimistic</span>
-        </div>
-        <div class="pred-list">${courseRows}</div>
-        <div class="target-cgpa-block">
-          <div class="target-cgpa-title">${svgWrap(ICON.target, 14)} what would it take to reach a target CGPA?</div>
-          <div class="target-cgpa-slider">
-            <input type="range" min="2.0" max="4.0" step="0.05" value="${state.targetCGPA}" data-f="target-cgpa">
-            <span class="target-cgpa-val" id="target-cgpa-val">${state.targetCGPA.toFixed(2)}</span>
+          <div class="pred-list">${courseRows}</div>
+          <div class="target-cgpa-block">
+            <div class="target-cgpa-title">${svgWrap(ICON.target, 14)} what would it take to reach a target CGPA?</div>
+            <div class="target-cgpa-slider">
+              <input type="range" min="2.0" max="4.0" step="0.05" value="${state.targetCGPA}" data-f="target-cgpa">
+              <span class="target-cgpa-val" id="target-cgpa-val">${state.targetCGPA.toFixed(2)}</span>
+            </div>
+            <div id="target-cgpa-summary">${targetSliderHTML}</div>
           </div>
-          <div id="target-cgpa-summary">${targetSliderHTML}</div>
+        </div>`;
+  }
+
+  /* ── Exam schedule panel ── */
+  let examPanel = '';
+  if (state.examSchedule && state.examSchedule.length > 0) {
+    const examRows = state.examSchedule.map(e => `
+        <div class="exam-row">
+          <div class="exam-code">${esc(e.code)}</div>
+          <div class="exam-name">${esc(e.name || '')}</div>
+          <div class="exam-meta">
+            ${e.date ? `<span>${svgWrap(ICON.calendar, 11)} ${esc(e.date)}</span>` : ''}
+            ${e.time ? `<span>${svgWrap(ICON.clock, 11)} ${esc(e.time)}</span>` : ''}
+            ${e.venue ? `<span>${svgWrap(ICON.mappin, 11)} ${esc(e.venue)}</span>` : ''}
+          </div>
+        </div>`).join('');
+    examPanel = `
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">${svgWrap(ICON.calendar)}Upcoming exams</div>
+            <div class="panel-meta">${state.examSchedule.length} scheduled</div>
+          </div>
+          <div class="exam-list">${examRows}</div>
+        </div>`;
+  } else if (state.dataTimestamp) {
+    examPanel = `
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">${svgWrap(ICON.calendar)}Upcoming exams</div>
+            <div class="panel-meta">not yet published</div>
+          </div>
+          <div class="empty" style="padding:28px;">
+            <p class="muted" style="font-size:13px">The exam schedule wasn't available on IULMS at sync time. Re-sync once the exam timetable is uploaded.</p>
+          </div>
+        </div>`;
+  }
+
+  /* ── Transcript snapshot panel ── */
+  let transcriptPanel = '';
+  if (transcriptStats && transcriptStats.byGrade) {
+    const grades = Object.entries(transcriptStats.byGrade)
+      .sort((a, b) => (GRADE_POINTS[b[0]] || 0) - (GRADE_POINTS[a[0]] || 0));
+    const totalGraded = transcriptStats.coursesGraded || 1;
+    const bars = grades.map(([g, count]) => {
+      const w = (count / totalGraded) * 100;
+      const cls = (GRADE_POINTS[g] >= 3.3) ? 'g-strong' : (GRADE_POINTS[g] >= 2.5) ? 'g-mid' : (GRADE_POINTS[g] >= 1.0) ? 'g-low' : 'g-fail';
+      return `<div class="g-bar"><div class="g-bar-letter">${g}</div><div class="g-bar-track"><div class="g-bar-fill ${cls}" style="width:${w}%"></div></div><div class="g-bar-count">${count}</div></div>`;
+    }).join('');
+    transcriptPanel = `
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">${svgWrap(ICON.chart)}Grade distribution</div>
+            <div class="panel-meta">${transcriptStats.coursesGraded} graded course${transcriptStats.coursesGraded > 1 ? 's' : ''} · ${transcriptStats.totalCredits} cr</div>
+          </div>
+          <div class="grade-bars">${bars}</div>
+        </div>`;
+  }
+
+  return `
+      <div class="container">
+        ${hero}
+        <div class="dash-grid">
+          ${predictionPanel}
+          ${attendancePanel}
+          ${examPanel}
+          ${transcriptPanel}
         </div>
-      </div>`;
+      </div>
+    `;
 }
 
 /* ── Exam schedule panel ── */
