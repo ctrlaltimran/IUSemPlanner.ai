@@ -89,34 +89,41 @@
       ]
     }
     </script>
+    <style>
+      /* Prevent FOUC: Hide raw SEO content instantly if JS is enabled */
+      html.js-enabled #seo-content { display: none !important; }
+    </style>
+    <script>document.documentElement.classList.add('js-enabled');</script>
 </head>
 
 <body>
   <div id="app">
-    <header style="padding: 20px; text-align: center;">
-      <h1>Welcome to IUSemPlanner.ai</h1>
-      <p>The smartest way to manage your <strong>IULMS</strong> courses and <strong>Iqra University</strong>
-        degree progress.</p>
-    </header>
+    <div id="seo-content">
+      <header style="padding: 20px; text-align: center;">
+        <h1>Welcome to IUSemPlanner.ai</h1>
+        <p>The smartest way to manage your <strong>IULMS</strong> courses and <strong>Iqra University</strong>
+          degree progress.</p>
+      </header>
 
-    <main style="max-width: 800px; margin: 0 auto; padding: 20px;">
-      <section>
-        <h2>Optimize your IULMS Semester Plan</h2>
-        <p>Import your data from the <strong>IULMS portal</strong> and instantly see your GPA, remaining
-          credits, and a clash-free schedule. IUSemPlanner.ai helps you avoid morning-evening traps and
-          overloaded days.</p>
-      </section>
+      <main style="max-width: 800px; margin: 0 auto; padding: 20px;">
+        <section>
+          <h2>Optimize your IULMS Semester Plan</h2>
+          <p>Import your data from the <strong>IULMS portal</strong> and instantly see your GPA, remaining
+            credits, and a clash-free schedule. IUSemPlanner.ai helps you avoid morning-evening traps and
+            overloaded days.</p>
+        </section>
 
-      <section>
-        <h2>Key Features for Students</h2>
-        <ul>
-          <li>Auto-import from IULMS text or files</li>
-          <li>Live Class Clash Detection</li>
-          <li>Degree Progress and GPA Tracking</li>
-          <li>AI-Powered Semester Recommendations</li>
-        </ul>
-      </section>
-    </main>
+        <section>
+          <h2>Key Features for Students</h2>
+          <ul>
+            <li>Auto-import from IULMS text or files</li>
+            <li>Live Class Clash Detection</li>
+            <li>Degree Progress and GPA Tracking</li>
+            <li>AI-Powered Semester Recommendations</li>
+          </ul>
+        </section>
+      </main>
+    </div>
   </div>
 
   <footer
