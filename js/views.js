@@ -18,6 +18,7 @@ const HOME_GUIDES = [
 
 /* Sticky top header shown on the home / landing page. */
 function renderHomeHeader() {
+  const hasUser = state && state.account;
   return `
     <header class="home-header">
       <div class="home-header-inner">
@@ -27,10 +28,17 @@ function renderHomeHeader() {
         </a>
         <nav class="home-nav">
           <a href="#features" class="home-nav-link">Features</a>
-          <a href="#guides" class="home-nav-link">Guides</a>
           <a href="#import" class="home-nav-link">Import</a>
           <a href="https://ctrlaltimran.com" target="_blank" rel="noopener" class="home-nav-link">Developer</a>
-          <a href="#home-auth" class="home-nav-cta">${svgWrap(ICON.user, 14)} Sign in</a>
+          ${hasUser ? `
+            <span class="acct-pill" title="${esc(state.account.email)}" style="margin-left: 6px;">
+              ${svgWrap(ICON.user, 12)}
+              <span class="acct-email">${esc(state.account.email)}</span>
+            </span>
+          ` : `
+            <a href="javascript:void(0)" class="home-nav-link" data-action="open-auth" data-auth-mode="signin" style="display: inline-flex; align-items: center; gap: 4px;">${svgWrap(ICON.user, 14)} Sign in</a>
+            <a href="javascript:void(0)" class="home-nav-cta" data-action="open-auth" data-auth-mode="signup">Sign up</a>
+          `}
         </nav>
       </div>
     </header>`;
@@ -69,8 +77,8 @@ function renderHomeFooter() {
         <div class="home-footer-col">
           <div class="home-footer-title">Get started</div>
           <ul class="home-footer-links">
-            <li><a href="#home-auth">${svgWrap(ICON.user, 12)} Log in</a></li>
-            <li><a href="#home-auth">${svgWrap(ICON.spark, 12)} Sign up — it's free</a></li>
+            <li><a href="javascript:void(0)" data-action="open-auth" data-auth-mode="signin">${svgWrap(ICON.user, 12)} Log in</a></li>
+            <li><a href="javascript:void(0)" data-action="open-auth" data-auth-mode="signup">${svgWrap(ICON.spark, 12)} Sign up — it's free</a></li>
             <li><a href="#import">${svgWrap(ICON.book, 12)} Import from IULMS</a></li>
             <li><a href="#features">${svgWrap(ICON.layers, 12)} Explore features</a></li>
           </ul>
@@ -126,7 +134,7 @@ function renderLogin() {
           </div>
         </div>
 
-        <div id="home-auth" class="home-auth-anchor">${renderAuthCard()}</div>
+        <!-- Removed inline auth card. Auth now appears in a modal popup. -->
 
         <div class="demo-preview">
           <div class="demo-head">
@@ -174,7 +182,7 @@ function renderLogin() {
         </div>
 
         <div class="login-cards">
-          <button class="plan-card" data-login="free">
+          <button class="plan-card" data-action="open-auth" data-auth-mode="signup">
             <div class="plan-head">
               <span class="plan-tag">Free Plan</span>
               ${svgWrap(ICON.code, 20)}
@@ -190,7 +198,7 @@ function renderLogin() {
             </ul>
             <div class="plan-cta">continue as free ${svgWrap(ICON.arrow, 14)}</div>
           </button>
-          <button class="plan-card pro" data-login="pro">
+          <button class="plan-card pro" data-action="open-auth" data-auth-mode="signup">
             <div class="plan-head">
               <span class="plan-tag">Pro Plan</span>
               <span style="width:20px;height:20px;color:#34d399">${ICON.crown}</span>
@@ -233,6 +241,7 @@ function renderLogin() {
 
       </div>
       ${renderHomeFooter()}
+      ${state.modal === 'auth' ? renderAuthModal() : ''}
     </div>
   `;
 }
@@ -240,14 +249,21 @@ function renderLogin() {
 /* ── Account card on the login screen ──
    Email/password sign in + sign up, Google sign in, and a "continue as guest"
    escape hatch. Gracefully degrades to guest-only if Supabase isn't set up. */
-function renderAuthCard() {
+function renderAuthCard(isModal = false) {
   const configured = window.IUSPAuth && window.IUSPAuth.authAvailable();
   const isSignup = state.authMode === 'signup';
   const loading = state.authLoading;
 
+  const closeBtn = isModal ? `
+    <button class="icon-btn-hdr auth-close-btn" data-action="close-modal">
+      ${svgWrap(ICON.close, 14)}
+    </button>
+  ` : '';
+
   if (!configured) {
     return `
       <div class="auth-card">
+        ${closeBtn}
         <div class="auth-head">
           <div class="auth-title">${svgWrap(ICON.user, 16)} Save your data across devices</div>
           <div class="auth-sub">Accounts aren't connected on this build yet. You can still use everything as a guest — your data stays in this browser.</div>
@@ -258,6 +274,7 @@ function renderAuthCard() {
 
   return `
     <div class="auth-card">
+      ${closeBtn}
       <div class="auth-head">
         <div class="auth-title">${svgWrap(ICON.user, 16)} ${isSignup ? 'Create your account' : 'Sign in to your account'}</div>
         <div class="auth-sub">${isSignup ? 'Save your IULMS profile, transcript and plans to the cloud — reachable from any device.' : 'Welcome back. Your saved data will load automatically.'}</div>
@@ -292,6 +309,14 @@ function renderAuthCard() {
         <button class="auth-link" data-auth="guest">Continue as guest</button>
       </div>
     </div>`;
+}
+
+function renderAuthModal() {
+  return `
+    <div class="modal-backdrop" style="z-index: 10000;">
+      ${renderAuthCard(true)}
+    </div>
+  `;
 }
 
 function renderApp() {
@@ -356,6 +381,7 @@ function renderApp() {
     ${state.modal === 'import' ? renderImportModal() : ''}
     ${state.modal === 'settings' ? renderSettingsModal() : ''}
     ${state.modal === 'addCustom' ? renderAddCustomModal() : ''}
+    ${state.modal === 'auth' ? renderAuthModal() : ''}
   `;
 }
 

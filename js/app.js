@@ -246,6 +246,7 @@ async function handleAuthAction(action) {
   if (action === 'guest') {
     /* Continue without an account — local only (old behaviour). */
     state.user = { plan: 'free' };
+    state.modal = null;
     if (_pendingImport) applyPendingImport();
     state.tab = (state.courses.length || state.transcript.length) ? 'dashboard' : 'progress';
     render();
@@ -346,6 +347,7 @@ document.addEventListener('click', (e) => {
   if (loginBtn) {
     /* Guest entry (no account). Keeps the old "pick a plan" flow working. */
     state.user = { plan: loginBtn.dataset.login };
+    state.modal = null;
     if (_pendingImport) applyPendingImport();
     state.tab = (state.courses.length || state.transcript.length) ? 'dashboard' : 'progress';
     render();
@@ -355,6 +357,7 @@ document.addEventListener('click', (e) => {
   const loginAndBtn = e.target.closest('[data-login-and]');
   if (loginAndBtn) {
     state.user = { plan: 'free' };
+    state.modal = null;
 
     state.tab = 'progress';
     state.modal = 'import';
@@ -420,6 +423,13 @@ document.addEventListener('click', (e) => {
       state.tab = 'dashboard';
       state.ai = { summary: null, recommendations: null, loadingSummary: false, loadingRecs: false, errorSummary: null, errorRecs: null };
       state.aiChat = { messages: [], loading: false, error: null };
+      render();
+      break;
+
+    case 'open-auth':
+      state.authMode = ab.dataset.authMode || 'signin';
+      state.modal = 'auth';
+      state.authError = null;
       render();
       break;
 
@@ -786,6 +796,7 @@ async function enterApp(account) {
   state.account = { id: account.id, email: account.email || '' };
   if (!state.user) state.user = { plan: 'free' };
   state.authError = null;
+  state.modal = null;
 
   let cloud = null;
   try { cloud = await window.IUSPAuth.cloudLoad(account.id); } catch (e) { }
@@ -840,6 +851,7 @@ async function initAuth() {
     /* Logged out + just imported → ask them to sign in / sign up to save it. */
     state.user = null;
     state.account = null;
+    state.modal = 'auth';
     state.importBanner = {
       type: 'info',
       text: 'Almost there — sign in or create an account to save your imported data.',

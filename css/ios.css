@@ -134,6 +134,7 @@ html { scroll-behavior: smooth; }
    ===================================================================== */
 
 .auth-card {
+  position: relative;
   max-width: 420px;
   margin: 28px auto 8px;
   padding: 26px 24px;
@@ -143,6 +144,34 @@ html { scroll-behavior: smooth; }
   border: 1px solid var(--ios-glass-border);
   border-radius: var(--ios-radius-lg);
   box-shadow: var(--ios-shadow);
+}
+.modal-backdrop .auth-card {
+  margin: 0;
+}
+.icon-btn-hdr svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+.auth-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  cursor: pointer;
+  border: none;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.auth-close-btn:hover {
+  background: rgba(0, 0, 0, 0.1) !important;
 }
 
 .auth-head { margin-bottom: 18px; text-align: center; }
@@ -328,6 +357,28 @@ html { scroll-behavior: smooth; }
     linear-gradient(135deg, #ffffff 0%, #f6fbf9 100%);
   border: 1px solid var(--border);
   box-shadow: var(--ios-shadow-soft);
+}
+.dash-hero .dash-name {
+  color: var(--text);
+}
+.dash-hero .dash-sub {
+  color: var(--text-muted);
+}
+.dash-hero .dash-actions .btn {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+}
+.dash-hero .dash-actions .btn:hover {
+  background: var(--bg-subtle);
+}
+.dash-hero .dash-actions .btn.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.dash-hero .dash-actions .btn.btn-primary:hover {
+  background: var(--accent-dark);
 }
 
 /* Stat tiles: clean cards with a calm hover */

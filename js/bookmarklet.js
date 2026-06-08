@@ -9,7 +9,7 @@
      7. Exam schedule (/sic/examschedule.php) — optional, may not exist
 */
 
-const BOOKMARKLET_TARGET = 'https://ctrlaltimran.com/IUSemPlanner/';
+const BOOKMARKLET_TARGET = window.location.origin + window.location.pathname;
 
 const BOOKMARKLET_SOURCE = `(async function(){
   var TARGET = '${BOOKMARKLET_TARGET}';
