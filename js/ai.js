@@ -123,24 +123,121 @@ Only output the tab-separated lines, no explanation, no markdown.`
   return (data.content || []).map(b => b.text || '').join('\n').trim();
 }
 
+/* Build a FULL context string describing every piece of the student's data.
+   This is what makes the AI "know everything" — it now sees the transcript,
+   attendance, schedule, midterms, exams and the full course list, not just a
+   tiny summary. Kept reasonably compact so it fits in the prompt. */
 function buildContext() {
-  const stats = computeStats(state.courses);
+  const stats = state.courses.length ? computeStats(state.courses) : null;
+  const tStats = computeTranscriptStats(state.transcript);
   const items = planItems(state.courses);
+
   const planText = items.length === 0 ? '(no planned courses)' :
     state.courses.filter(c => c.planned).map(c => {
       const days = c.sessions.map(s => DAYS.find(d => d.key === s.day).full + ' ' + s.start + '-' + s.end).join('; ');
       return `${c.code} ${c.name} (${c.credits}cr, ${c.difficulty}): ${days}`;
     }).join('\n');
 
-  return `Student profile (Iqra University, BS Software Engineering):
-- Credits completed: ${stats.completedCredits}/${TOTAL_CREDITS} (${stats.pctComplete}%)
-- Credits in progress: ${stats.inProgressCredits}
-- Credits remaining: ${stats.remainingCredits}
-- Current GPA: ${stats.gpa || 'N/A'}
-- Electives completed: ${stats.electivesCompleted}/5
+  /* Full course list grouped by status (codes + names). */
+  const courseList = state.courses.length
+    ? state.courses.map(c => `${c.code} ${c.name} [${c.status}${c.grade ? ', ' + c.grade : ''}${c.semester ? ', sem ' + c.semester : ''}]`).join('\n')
+    : '(no course list imported)';
 
-Planned courses for current semester:
-${planText}`;
+  /* Transcript records. */
+  const transcriptText = (state.transcript && state.transcript.length)
+    ? state.transcript.map(t => `${t.code} ${t.title}: ${t.grade} (${t.credits}cr, ${t.points}pt)`).join('\n')
+    : '(no transcript imported)';
+
+  /* Attendance. */
+  const attendanceText = (state.attendance && state.attendance.length)
+    ? state.attendance.map(a => {
+        const total = a.totalSessions || (a.present + a.absent);
+        const pct = total ? Math.round((a.present / total) * 100) : 0;
+        return `${a.course}: ${a.present}/${total} present (${pct}%)`;
+      }).join('\n')
+    : '(no attendance imported)';
+
+  /* Weekly schedule. */
+  const scheduleText = (state.currentSchedule && state.currentSchedule.length)
+    ? state.currentSchedule.map(s => {
+        const day = (DAYS.find(d => d.key === s.day) || {}).full || s.day;
+        return `${day}: ${s.courseTitle || '—'} ${s.startTime || ''}-${s.endTime || ''} ${s.location ? '(' + s.location + ')' : ''}`;
+      }).join('\n')
+    : '(no schedule imported)';
+
+  /* Midterm results. */
+  const midtermText = (state.midterms && state.midterms.length)
+    ? state.midterms.map(m => `${m.code || m.name}: ${m.obtained != null ? m.obtained + '/' + m.total : 'n/a'}${m.quizzes != null ? ', quiz ' + m.quizzes : ''}${m.project != null ? ', project ' + m.project : ''}`).join('\n')
+    : '(no midterm results imported)';
+
+  /* Exam schedule. */
+  const examText = (state.examSchedule && state.examSchedule.length)
+    ? state.examSchedule.map(e => `${e.code} ${e.name || ''}: ${e.date || 'TBA'} ${e.time || ''} ${e.venue || ''}`).join('\n')
+    : '(no exam schedule imported)';
+
+  return `STUDENT PROFILE (Iqra University, BS Software Engineering)
+Name: ${(state.profile && state.profile.name) || 'Unknown'}
+Official CGPA: ${state.transcriptGPA != null ? state.transcriptGPA : (tStats ? tStats.cgpa : 'N/A')}
+${stats ? `Credits completed: ${stats.completedCredits}/${TOTAL_CREDITS} (${stats.pctComplete}%)
+Credits in progress: ${stats.inProgressCredits} · remaining: ${stats.remainingCredits}
+Computed GPA: ${stats.gpa || 'N/A'} · Electives: ${stats.electivesCompleted}/5` : ''}
+
+=== FULL COURSE LIST ===
+${courseList}
+
+=== TRANSCRIPT ===
+${transcriptText}
+
+=== ATTENDANCE ===
+${attendanceText}
+
+=== WEEKLY SCHEDULE ===
+${scheduleText}
+
+=== MIDTERM RESULTS ===
+${midtermText}
+
+=== EXAM SCHEDULE ===
+${examText}
+
+=== PLANNED COURSES (current semester) ===
+${planText}
+
+=== COURSE KNOWLEDGE BASE (program reference) ===
+${typeof libraryDigest === 'function' ? libraryDigest() : ''}`;
+}
+
+/* ── Data-aware Q&A chat ──
+   Lets the student ASK anything about their own data or coursework. The full
+   context above is supplied so answers are grounded in the student's actual
+   records and the program syllabus. */
+async function askAIQuestion(question) {
+  if (state.aiChat.loading) return;
+  state.aiChat.loading = true;
+  state.aiChat.error = null;
+  state.aiChat.messages.push({ role: 'user', text: question });
+  render();
+  try {
+    const ctx = buildContext();
+    const history = state.aiChat.messages.slice(-6)
+      .map(m => `${m.role === 'user' ? 'Student' : 'Advisor'}: ${m.text}`).join('\n');
+    const prompt = `You are the academic advisor inside IUSemPlanner.ai for a BS Software Engineering student at Iqra University. Answer the student's question using ONLY the data and knowledge base below. Be specific — cite actual course codes, grades, attendance %, dates. If the answer isn't in the data, say so plainly. If it's a study/course question, use the COURSE KNOWLEDGE BASE. Keep answers concise and friendly. Plain text, no markdown.
+
+${ctx}
+
+Recent conversation:
+${history}
+
+Answer the latest student question clearly.`;
+    const answer = await callAI(prompt);
+    state.aiChat.messages.push({ role: 'assistant', text: answer });
+  } catch (e) {
+    state.aiChat.error = e.message || 'Failed to get an answer.';
+    /* drop the optimistic user echo error tail; keep their question visible */
+  } finally {
+    state.aiChat.loading = false;
+    render();
+  }
 }
 
 async function generateAISummary() {

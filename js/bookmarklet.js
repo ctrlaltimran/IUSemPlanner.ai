@@ -143,6 +143,7 @@ const BOOKMARKLET_SOURCE = `(async function(){
     try {
       var doc = await fetchDoc('/sic/Transcript.php');
       if(doc){
+        /* --- Primary: the known IULMS markup --- */
         var trRows = doc.querySelectorAll('table.transcript-table tr.transcript-content');
         trRows.forEach(function(r){
           var cells = r.querySelectorAll('td');
@@ -156,8 +157,45 @@ const BOOKMARKLET_SOURCE = `(async function(){
             });
           }
         });
+        /* --- Fallback: IULMS sometimes uses different class names. If nothing
+           was found, scan EVERY table and keep rows that look like a transcript
+           line (a course code + a recognizable grade). This is why transcript
+           import is now far more reliable. --- */
+        if(payload.transcript.length === 0){
+          var gradeRe = /^(A\\+?|A-|B\\+?|B-|C\\+?|C-|D\\+?|D-|F|W|I|NC|P)$/i;
+          var codeRe = /^[A-Z]{2,5}[-\\s]?\\d{2,4}(?:-L)?$/i;
+          var allTables = doc.querySelectorAll('table');
+          allTables.forEach(function(t){
+            var rows = t.querySelectorAll('tr');
+            rows.forEach(function(r){
+              var cells = r.querySelectorAll('td');
+              if(cells.length < 3) return;
+              var arr = [];
+              cells.forEach(function(c){ arr.push(cellText(c)); });
+              var ci = -1;
+              for(var i=0;i<arr.length;i++){ if(codeRe.test(arr[i])){ ci = i; break; } }
+              if(ci === -1) return;
+              var gi = -1;
+              for(var j=ci+1;j<arr.length;j++){ if(gradeRe.test(arr[j])){ gi = j; break; } }
+              if(gi === -1) return;
+              var credits = 0;
+              for(var k=ci+1;k<gi;k++){ var n = parseFloat(arr[k]); if(!isNaN(n) && n>=0 && n<=6){ credits = n; break; } }
+              var points = 0;
+              for(var m=gi+1;m<arr.length;m++){ var p = parseFloat(arr[m]); if(!isNaN(p)){ points = p; break; } }
+              var title = '';
+              for(var x=ci+1;x<gi;x++){ if(arr[x] && isNaN(parseFloat(arr[x])) && arr[x].length > title.length) title = arr[x]; }
+              payload.transcript.push({
+                code: arr[ci].toUpperCase(),
+                title: title || arr[ci+1] || '',
+                credits: credits,
+                grade: arr[gi].toUpperCase(),
+                points: points
+              });
+            });
+          });
+        }
         var bodyText = doc.body.innerText || doc.body.textContent || '';
-        var gpaMatch = bodyText.match(/GPA:\s*([0-9.]+)/i);
+        var gpaMatch = bodyText.match(/(?:CGPA|GPA)\\s*:?\\s*([0-9]\\.[0-9]+)/i);
         if (gpaMatch) {
           payload.transcriptGPA = parseFloat(gpaMatch[1]);
         }

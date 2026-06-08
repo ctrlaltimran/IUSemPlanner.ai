@@ -27,6 +27,20 @@ const defaultState = {
   showBookmarkCode: false,
   importBanner: null,
   targetCGPA: 3.5,         /* user-adjustable CGPA goal for predictions */
+
+  /* ── account + cloud (Supabase) ── */
+  account: null,           /* { id, email } when signed in, else null */
+  authMode: 'signin',      /* 'signin' | 'signup' — which auth form to show */
+  authError: null,
+  authLoading: false,
+  cloudStatus: null,       /* 'saving' | 'saved' | null — small sync indicator */
+
+  /* ── AI data-aware chat ── */
+  aiChat: { messages: [], loading: false, error: null },
+
+  /* ── Courses (knowledge base) tab ── */
+  libQuery: '',            /* search text */
+  libOpen: null,           /* code of the currently expanded course */
 };
 
 // Load saved data from browser storage
@@ -40,30 +54,72 @@ const state = { ...defaultState, ...savedState };
 // Reset UI-only states on reload so modals don't get stuck open
 state.modal = null;
 state.uploadProcessing = false;
+state.authError = null;
+state.authLoading = false;
+state.aiChat = { messages: [], loading: false, error: null };
 /* If saved tab no longer exists in v2 (old "progress" was default), keep it. */
-if (!['dashboard', 'timetable', 'progress', 'courses', 'planner', 'ai'].includes(state.tab)) {
+if (!['dashboard', 'timetable', 'progress', 'transcript', 'courses', 'library', 'planner', 'ai'].includes(state.tab)) {
   state.tab = 'dashboard';
 }
 
 // Helper function to auto-save to browser storage
+function dataBlob() {
+  return {
+    user: state.user,
+    tab: state.tab,
+    courses: state.courses,
+    profile: state.profile,
+    transcript: state.transcript,
+    transcriptGPA: state.transcriptGPA,
+    attendance: state.attendance,
+    currentSchedule: state.currentSchedule,
+    midterms: state.midterms,
+    examSchedule: state.examSchedule,
+    dataTimestamp: state.dataTimestamp,
+    aiSettings: state.aiSettings,
+    targetCGPA: state.targetCGPA,
+  };
+}
+
 function saveLocal() {
   try {
-    localStorage.setItem('iusp_data', JSON.stringify({
-      user: state.user,
-      tab: state.tab,
-      courses: state.courses,
-      profile: state.profile,
-      transcript: state.transcript,
-      transcriptGPA: state.transcriptGPA,
-      attendance: state.attendance,
-      currentSchedule: state.currentSchedule,
-      midterms: state.midterms,
-      examSchedule: state.examSchedule,
-      dataTimestamp: state.dataTimestamp,
-      aiSettings: state.aiSettings,
-      targetCGPA: state.targetCGPA,
-    }));
+    localStorage.setItem('iusp_data', JSON.stringify(dataBlob()));
   } catch (e) { }
+  /* If signed in, also push to the cloud (debounced). */
+  scheduleCloudSave();
+}
+
+/* ── Cloud save (debounced) ──
+   Only runs when a Supabase account is connected. Safe no-op otherwise. */
+let _cloudTimer = null;
+function scheduleCloudSave() {
+  if (!state.account || !window.IUSPAuth || !window.IUSPAuth.authAvailable()) return;
+  if (_cloudTimer) clearTimeout(_cloudTimer);
+  _cloudTimer = setTimeout(async () => {
+    state.cloudStatus = 'saving';
+    const ok = await window.IUSPAuth.cloudSave(state.account.id, dataBlob());
+    state.cloudStatus = ok ? 'saved' : null;
+    /* repaint the tiny sync indicator without disrupting inputs */
+    const el = document.getElementById('cloud-status');
+    if (el) el.textContent = ok ? 'synced' : '';
+    setTimeout(() => { state.cloudStatus = null; const e2 = document.getElementById('cloud-status'); if (e2) e2.textContent = ''; }, 2500);
+  }, 1200);
+}
+
+/* Apply a data blob (from cloud or pending import) into state. */
+function applyBlob(blob) {
+  if (!blob) return;
+  if (blob.courses) state.courses = blob.courses;
+  if (blob.profile !== undefined) state.profile = blob.profile;
+  if (blob.transcript) state.transcript = blob.transcript;
+  if (blob.transcriptGPA !== undefined) state.transcriptGPA = blob.transcriptGPA;
+  if (blob.attendance) state.attendance = blob.attendance;
+  if (blob.currentSchedule) state.currentSchedule = blob.currentSchedule;
+  if (blob.midterms) state.midterms = blob.midterms;
+  if (blob.examSchedule) state.examSchedule = blob.examSchedule;
+  if (blob.dataTimestamp) state.dataTimestamp = blob.dataTimestamp;
+  if (blob.aiSettings) state.aiSettings = blob.aiSettings;
+  if (blob.targetCGPA != null) state.targetCGPA = blob.targetCGPA;
 }
 
 function $(id) { return document.getElementById(id); }
@@ -99,7 +155,10 @@ function fmtDur(mins) {
 
 function render() {
   saveLocal();
-  $('app').innerHTML = state.user === null ? renderLogin() : renderApp();
+  const onHome = state.user === null;
+  $('app').innerHTML = onHome ? renderLogin() : renderApp();
+  document.body.classList.toggle('view-home', onHome);
+  document.body.classList.toggle('view-app', !onHome);
 
   if (state._focusSearch) {
     const inp = document.querySelector('[data-f="search"]');
@@ -109,7 +168,24 @@ function render() {
     }
     state._focusSearch = false;
   }
+
+  if (state._focusLibSearch) {
+    const inp = document.querySelector('[data-f="lib-search"]');
+    if (inp) {
+      inp.focus();
+      inp.setSelectionRange(state.libQuery.length, state.libQuery.length);
+    }
+    state._focusLibSearch = false;
+  }
 }
+
+/* Send AI chat on Enter (Shift+Enter for newline). */
+document.addEventListener('keydown', (e) => {
+  if (e.target && e.target.id === 'aiChatInput' && e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendAIChat();
+  }
+});
 
 /* ── File upload handlers ── */
 
@@ -159,14 +235,119 @@ async function handleImageFile(file) {
   }
 }
 
+/* ── Account / auth actions ── */
+async function handleAuthAction(action) {
+  if (action === 'toggle') {
+    state.authMode = state.authMode === 'signin' ? 'signup' : 'signin';
+    state.authError = null;
+    render();
+    return;
+  }
+  if (action === 'guest') {
+    /* Continue without an account — local only (old behaviour). */
+    state.user = { plan: 'free' };
+    if (_pendingImport) applyPendingImport();
+    state.tab = (state.courses.length || state.transcript.length) ? 'dashboard' : 'progress';
+    render();
+    return;
+  }
+  if (action === 'google') {
+    state.authError = null;
+    state.authLoading = true;
+    render();
+    try {
+      await window.IUSPAuth.authSignInGoogle();
+      /* page will redirect to Google, then back; onAuthChange handles the rest */
+    } catch (err) {
+      state.authError = err.message;
+      state.authLoading = false;
+      render();
+    }
+    return;
+  }
+  if (action === 'submit') {
+    const email = (document.getElementById('auth-email') || {}).value || '';
+    const password = (document.getElementById('auth-password') || {}).value || '';
+    if (!email.trim() || !password.trim()) {
+      state.authError = 'Please enter both your email and password.';
+      render();
+      return;
+    }
+    state.authError = null;
+    state.authLoading = true;
+    render();
+    try {
+      if (state.authMode === 'signup') {
+        const res = await window.IUSPAuth.authSignUp(email.trim(), password);
+        if (res && res.user && !res.session) {
+          /* Email confirmation is ON in Supabase — tell the user to verify. */
+          state.authLoading = false;
+          state.authError = null;
+          state.importBanner = { type: 'info', text: 'Check your email to confirm your account, then sign in.' };
+          state.authMode = 'signin';
+          render();
+          return;
+        }
+        if (res && res.user) await enterApp(res.user);
+      } else {
+        const res = await window.IUSPAuth.authSignIn(email.trim(), password);
+        if (res && res.user) await enterApp(res.user);
+      }
+    } catch (err) {
+      state.authError = err.message;
+      state.authLoading = false;
+      render();
+    }
+  }
+}
+
+/* ── AI chat: read the input box and ask the AI ── */
+function sendAIChat() {
+  const inp = document.getElementById('aiChatInput');
+  if (!inp) return;
+  const q = inp.value.trim();
+  if (!q) return;
+  inp.value = '';
+  askAIQuestion(q); /* defined in ai.js — pushes messages and re-renders */
+}
+
 /* ── Event handlers ── */
 
 document.addEventListener('click', (e) => {
+  /* ── Account / auth buttons (login screen) ── */
+  const authBtn = e.target.closest('[data-auth]');
+  if (authBtn) {
+    handleAuthAction(authBtn.dataset.auth);
+    return;
+  }
+
+  /* ── Courses knowledge-base: expand/collapse a course card ── */
+  const libCard = e.target.closest('[data-lib-open]');
+  if (libCard) {
+    const code = libCard.dataset.libOpen;
+    state.libOpen = state.libOpen === code ? null : code;
+    render();
+    return;
+  }
+
+  /* ── AI chat: send a question ── */
+  if (e.target.closest('[data-action="ai-chat-send"]')) {
+    sendAIChat();
+    return;
+  }
+  const chatChip = e.target.closest('[data-chat-suggest]');
+  if (chatChip) {
+    const inp = document.getElementById('aiChatInput');
+    if (inp) { inp.value = chatChip.dataset.chatSuggest; inp.focus(); }
+    return;
+  }
+
   const loginBtn = e.target.closest('[data-login]');
   if (loginBtn) {
+    /* Guest entry (no account). Keeps the old "pick a plan" flow working. */
     state.user = { plan: loginBtn.dataset.login };
-
-    state.tab = 'progress';
+    if (_pendingImport) applyPendingImport();
+    state.tab = (state.courses.length || state.transcript.length) ? 'dashboard' : 'progress';
     render();
     return;
   }
@@ -233,10 +414,12 @@ document.addEventListener('click', (e) => {
 
   switch (action) {
     case 'logout':
+      if (state.account && window.IUSPAuth) { window.IUSPAuth.authSignOut(); }
+      state.account = null;
       state.user = null;
-
       state.tab = 'dashboard';
       state.ai = { summary: null, recommendations: null, loadingSummary: false, loadingRecs: false, errorSummary: null, errorRecs: null };
+      state.aiChat = { messages: [], loading: false, error: null };
       render();
       break;
 
@@ -478,6 +661,13 @@ document.addEventListener('input', (e) => {
     return;
   }
 
+  if (t.dataset.f === 'lib-search') {
+    state.libQuery = t.value;
+    state._focusLibSearch = true;
+    render();
+    return;
+  }
+
   if (t.dataset.f === 'target-cgpa') {
     const v = parseFloat(t.value);
     if (Number.isFinite(v)) {
@@ -517,64 +707,149 @@ document.addEventListener('input', (e) => {
   }
 });
 
-/* URL parameter handler — auto-import from bookmarklet redirect */
+/* URL parameter handler — capture bookmarklet redirect data.
+   IMPORTANT CHANGE (v2.1): we no longer log the user straight in. We parse the
+   imported data and STASH it. Then initAuth() decides what to do:
+     • already signed in  → apply + save to that account
+     • signed out         → show login/signup and save once they authenticate
+     • guest-only build    → apply locally (old behaviour, nothing breaks)
+   The raw payload is also kept in localStorage so it survives the Google OAuth
+   round-trip (which navigates away from the page and back). */
+let _pendingImport = null; /* parsed result waiting to be applied after auth */
+
 function checkURLImport() {
   const url = new URL(window.location.href);
-
-  // 1. Extract data from either query or hash
   let importData = url.searchParams.get('import');
   if (!importData && window.location.hash.startsWith('#import=')) {
     importData = window.location.hash.substring(8);
   }
+  if (!importData) {
+    /* maybe a payload was stashed before a Google-login redirect */
+    try {
+      const raw = localStorage.getItem('iusp_pending_raw');
+      if (raw) importData = raw;
+    } catch (e) { }
+    if (!importData) return false;
+  }
 
-  if (!importData) return false;
-
-  // 2. CLEAN THE URL IMMEDIATELY (This makes the big messy string vanish)
+  // Clean the URL immediately so the long string vanishes
   window.history.replaceState({}, document.title, window.location.pathname);
 
-  // 3. Process the data
   try {
     const result = parseIULMSBookmarkData(importData);
-
     if (!result || (result.courses.length === 0 && result.transcript.length === 0)) {
-      alert('Import failed: No data could be read from the bookmark payload.');
       return false;
     }
-
-    // 4. Success! Load every field and bypass the login screen
-    state.courses = result.courses || [];
-    state.profile = result.profile || null;
-    state.transcript = result.transcript || [];
-    state.transcriptGPA = result.transcriptGPA || null;
-    state.attendance = result.attendance || [];
-    state.currentSchedule = result.schedule || [];
-    state.midterms = result.midterms || [];
-    state.examSchedule = result.examSchedule || [];
-    state.dataTimestamp = Date.now();
-
-    state.user = { plan: 'free' };
-    state.tab = 'dashboard';
-
-    const name = state.profile && state.profile.name;
-    const bits = [];
-    if (state.courses.length) bits.push(`${state.courses.length} courses`);
-    if (state.transcript.length) bits.push(`${state.transcript.length} transcript records`);
-    if (state.attendance.length) bits.push(`${state.attendance.length} attendance entries`);
-    state.importBanner = {
-      type: 'success',
-      text: `Welcome${name ? ', ' + name.split(' ')[0] : ''} — imported ${bits.join(' · ') || 'your IULMS data'}.`,
-    };
-
-    setTimeout(() => { state.importBanner = null; render(); }, 6000);
+    _pendingImport = result;
+    /* persist raw so a Google OAuth redirect doesn't lose it */
+    try { localStorage.setItem('iusp_pending_raw', importData); } catch (e) { }
     return true;
-
   } catch (e) {
-    // Alert the error so it doesn't fail silently on the login screen
     alert('Could not import from IULMS: ' + e.message);
     return false;
   }
 }
 
+/* Apply the stashed import into state (fresh IULMS data wins over old data). */
+function applyPendingImport() {
+  if (!_pendingImport) return false;
+  const r = _pendingImport;
+  state.courses = r.courses || [];
+  state.profile = r.profile || null;
+  state.transcript = r.transcript || [];
+  state.transcriptGPA = r.transcriptGPA || null;
+  state.attendance = r.attendance || [];
+  state.currentSchedule = r.schedule || [];
+  state.midterms = r.midterms || [];
+  state.examSchedule = r.examSchedule || [];
+  state.dataTimestamp = Date.now();
 
+  const name = state.profile && state.profile.name;
+  const bits = [];
+  if (state.courses.length) bits.push(`${state.courses.length} courses`);
+  if (state.transcript.length) bits.push(`${state.transcript.length} transcript records`);
+  if (state.attendance.length) bits.push(`${state.attendance.length} attendance entries`);
+  state.importBanner = {
+    type: 'success',
+    text: `Welcome${name ? ', ' + name.split(' ')[0] : ''} — imported ${bits.join(' · ') || 'your IULMS data'}.`,
+  };
+  setTimeout(() => { state.importBanner = null; render(); }, 6000);
+
+  _pendingImport = null;
+  try { localStorage.removeItem('iusp_pending_raw'); } catch (e) { }
+  return true;
+}
+
+/* ── Enter the app as a signed-in account ──
+   Loads cloud data, then reconciles with any fresh import or local data. */
+async function enterApp(account) {
+  state.account = { id: account.id, email: account.email || '' };
+  if (!state.user) state.user = { plan: 'free' };
+  state.authError = null;
+
+  let cloud = null;
+  try { cloud = await window.IUSPAuth.cloudLoad(account.id); } catch (e) { }
+
+  if (_pendingImport) {
+    /* Fresh IULMS import takes priority, then save it to the account. */
+    applyPendingImport();
+    await window.IUSPAuth.cloudSave(account.id, dataBlob());
+  } else if (cloud) {
+    /* Returning user — load their saved data from the cloud. */
+    applyBlob(cloud);
+  } else {
+    /* New account with no cloud row yet — push whatever is local up. */
+    await window.IUSPAuth.cloudSave(account.id, dataBlob());
+  }
+
+  state.tab = 'dashboard';
+  render();
+}
+
+/* ── Auth initialization (runs once at startup) ── */
+async function initAuth() {
+  const hasAuth = window.IUSPAuth && window.IUSPAuth.authAvailable();
+
+  if (!hasAuth) {
+    /* Guest-only build (no Supabase keys). Preserve the old behaviour: a
+       bookmark import logs you straight in locally. */
+    if (_pendingImport) {
+      applyPendingImport();
+      state.user = { plan: 'free' };
+      state.tab = 'dashboard';
+    }
+    render();
+    return;
+  }
+
+  /* React to login/logout (also fires after Google OAuth redirect). */
+  window.IUSPAuth.onAuthChange((user) => {
+    if (user && !state.account) {
+      enterApp(user);
+    } else if (!user && state.account) {
+      state.account = null;
+      state.user = null;
+      render();
+    }
+  });
+
+  const user = await window.IUSPAuth.getCurrentUser();
+  if (user) {
+    await enterApp(user);
+  } else if (_pendingImport) {
+    /* Logged out + just imported → ask them to sign in / sign up to save it. */
+    state.user = null;
+    state.account = null;
+    state.importBanner = {
+      type: 'info',
+      text: 'Almost there — sign in or create an account to save your imported data.',
+    };
+    render();
+  } else {
+    render();
+  }
+}
+
+/* Boot: parse any import first, then start auth which renders the right view. */
 checkURLImport();
-render();
+initAuth();

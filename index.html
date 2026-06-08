@@ -25,6 +25,8 @@
     href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="css/ios.css?v=2.1">
+
 
   <script type="application/ld+json">
     {
@@ -127,6 +129,7 @@
   </div>
 
   <footer
+    id="site-footer"
     style="max-width: 800px; margin: 40px auto; padding: 32px 20px 20px; border-top: 1px solid #e5e7eb; font-family: sans-serif; font-size: 14px; color: #6b7280;">
 
     <div style="text-align: center; margin-bottom: 24px;">
@@ -204,13 +207,21 @@
     </div>
   </footer>
 
-  <script src="js/constants.js?v=2.0"></script>
-  <script src="js/parser.js?v=2.0"></script>
-  <script src="js/bookmarklet.js?v=2.0"></script>
-  <script src="js/analytics.js?v=2.0"></script>
-  <script src="js/ai.js?v=2.0"></script>
-  <script src="js/views.js?v=2.0"></script>
-  <script src="js/app.js?v=2.0"></script>
+  <!-- Supabase SDK (loaded from CDN — client-side only, does not touch your WordPress server) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Account config + auth/cloud module (safe no-ops until you add keys in js/config.js) -->
+  <script src="js/config.js?v=2.1"></script>
+  <script src="js/supabase.js?v=2.1"></script>
+
+  <script src="js/constants.js?v=2.1"></script>
+  <script src="js/coursedata.js?v=2.1"></script>
+  <script src="js/parser.js?v=2.1"></script>
+  <script src="js/bookmarklet.js?v=2.1"></script>
+  <script src="js/analytics.js?v=2.1"></script>
+  <script src="js/ai.js?v=2.1"></script>
+  <script src="js/views.js?v=2.1"></script>
+  <script src="js/app.js?v=2.1"></script>
 </body>
 
 </html>

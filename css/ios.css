@@ -1,0 +1,900 @@
+/* =====================================================================
+   ios.css  ·  IUSemPlanner.ai  v2.1
+   ---------------------------------------------------------------------
+   Loaded AFTER styles.css, so anything here overrides the base theme.
+   Two jobs:
+     1. Style the NEW components added in v2.1
+        (auth card, account pill, Courses knowledge-base, AI chat).
+     2. Add a restrained, Apple-iOS-flavoured polish to the home page
+        and dashboard — soft surfaces, gentle gradients, frosted glass,
+        calm shadows. Deliberately NOT a heavy "AI" look.
+   All colours reuse the brand tokens already defined in styles.css.
+   100% presentational — touches nothing on the WordPress host site.
+   ===================================================================== */
+
+:root {
+  /* A few extra tokens just for the iOS layer. */
+  --ios-radius: 18px;
+  --ios-radius-lg: 24px;
+  --ios-glass: rgba(255, 255, 255, 0.72);
+  --ios-glass-border: rgba(255, 255, 255, 0.6);
+  --ios-shadow: 0 8px 30px rgba(2, 32, 22, 0.06);
+  --ios-shadow-soft: 0 2px 10px rgba(2, 32, 22, 0.05);
+  --ios-ring: 0 0 0 4px rgba(5, 150, 105, 0.12);
+}
+
+/* =====================================================================
+   1 · HOME / LOGIN PAGE POLISH
+   Keep the same hero image (iui.png); just make the canvas feel calmer
+   and more premium with a soft mesh gradient + airy spacing.
+   ===================================================================== */
+
+.login {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 0;
+  background:
+    radial-gradient(1200px 600px at 8% -10%, #e7fbf937 0%, rgba(231, 251, 249, 0) 55%),
+    radial-gradient(1000px 520px at 100% -5%, #eef4ff 0%, rgba(238, 244, 255, 0) 55%),
+    radial-gradient(900px 700px at 50% 120%, #fff7ed 0%, rgba(255, 247, 237, 0) 55%),
+    linear-gradient(180deg, #ffffff 0%, #f7fbfa 45%, #f4f9f7 100%);
+}
+
+/* Soft floating colour blobs behind the content — purely decorative, very light.
+   Kept within bounds (no negative horizontal inset) so they never add a
+   horizontal scrollbar and never break the sticky header. */
+.login::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 62%;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(420px 320px at 22% 34%, rgba(5, 150, 105, 0.10), transparent 70%),
+    radial-gradient(360px 300px at 82% 22%, rgba(37, 99, 235, 0.08), transparent 70%),
+    radial-gradient(300px 260px at 60% 72%, rgba(217, 119, 6, 0.07), transparent 70%);
+}
+/* faint dotted texture for a subtle "engineered" feel */
+.login::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: radial-gradient(rgba(2, 32, 22, 0.04) 1px, transparent 1px);
+  background-size: 26px 26px;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 55%);
+  mask-image: linear-gradient(180deg, #000 0%, transparent 55%);
+  opacity: .6;
+}
+/* center the content column and give it side padding */
+.login-wrap {
+  position: relative;
+  z-index: 1;
+  margin: 0 auto;
+  padding: 28px 24px 0;
+}
+
+/* Smooth-scroll for the header / footer anchor links. */
+html { scroll-behavior: smooth; }
+
+/* Hero image card — give it a soft frame instead of sitting raw */
+.hero-char-wrap {
+  border-radius: var(--ios-radius-lg);
+}
+.hero-char {
+  border-radius: var(--ios-radius-lg);
+  box-shadow: var(--ios-shadow);
+}
+
+/* Floating tags: frosted-glass pills */
+.hero-float-tag {
+  background: var(--ios-glass) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  backdrop-filter: saturate(180%) blur(14px);
+  border: 1px solid var(--ios-glass-border) !important;
+  box-shadow: var(--ios-shadow-soft);
+  border-radius: 999px;
+}
+
+/* Feature cards — softer, lifted, calmer borders */
+.feature-card {
+  border-radius: var(--ios-radius);
+  border: 1px solid var(--border);
+  background: #fff;
+  box-shadow: var(--ios-shadow-soft);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.feature-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ios-shadow);
+}
+
+/* Plan cards on the login page get the same treatment */
+.plan-card {
+  border-radius: var(--ios-radius);
+  box-shadow: var(--ios-shadow-soft);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.plan-card:hover { transform: translateY(-2px); box-shadow: var(--ios-shadow); }
+.plan-card.pro { box-shadow: var(--ios-shadow); }
+
+/* Bookmarklet promo window — frosted terminal feel */
+.bm-promo {
+  border-radius: var(--ios-radius);
+  box-shadow: var(--ios-shadow-soft);
+}
+
+/* =====================================================================
+   2 · AUTH CARD  (login / signup / Google)
+   ===================================================================== */
+
+.auth-card {
+  max-width: 420px;
+  margin: 28px auto 8px;
+  padding: 26px 24px;
+  background: var(--ios-glass);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border: 1px solid var(--ios-glass-border);
+  border-radius: var(--ios-radius-lg);
+  box-shadow: var(--ios-shadow);
+}
+
+.auth-head { margin-bottom: 18px; text-align: center; }
+
+.auth-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text);
+}
+.auth-title svg { color: var(--accent); }
+
+.auth-sub {
+  margin-top: 6px;
+  font-size: .82rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* Google button — clean white, subtle border, iOS press feel */
+.btn-google {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 14px;
+  background: #fff;
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: .9rem;
+  box-shadow: var(--ios-shadow-soft);
+  transition: transform .12s ease, box-shadow .15s ease, background .15s ease;
+}
+.btn-google:hover { background: var(--bg-subtle); }
+.btn-google:active { transform: scale(.985); }
+.btn-google:disabled { opacity: .6; cursor: not-allowed; }
+
+/* "or" divider */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  color: var(--text-faint);
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.auth-field { margin-bottom: 12px; }
+.auth-field label {
+  display: block;
+  margin-bottom: 5px;
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  color: var(--text-muted);
+}
+.auth-field .field {
+  width: 100%;
+  border-radius: 12px;
+}
+.auth-field .field:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--ios-ring);
+}
+
+.auth-error {
+  margin: 4px 0 12px;
+  padding: 9px 12px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  font-size: .82rem;
+}
+
+.auth-submit {
+  width: 100%;
+  justify-content: center;
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-size: .92rem;
+}
+
+.auth-foot {
+  margin-top: 16px;
+  text-align: center;
+  font-size: .82rem;
+  color: var(--text-muted);
+}
+.auth-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: .82rem;
+  cursor: pointer;
+}
+.auth-link:hover { color: var(--accent-dark); text-decoration: underline; }
+.auth-dot { margin: 0 6px; color: var(--text-faint); }
+
+.auth-guest-btn { width: 100%; justify-content: center; border-radius: 12px; }
+
+/* =====================================================================
+   3 · ACCOUNT PILL + CLOUD STATUS  (app header)
+   ===================================================================== */
+
+.acct-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 240px;
+  padding: 5px 10px 5px 12px;
+  background: var(--accent-bg);
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  font-size: .78rem;
+  color: var(--accent-dark);
+}
+.acct-email {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+.cloud-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .72rem;
+  color: var(--text-muted);
+}
+.cloud-status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+}
+.cloud-status.saving::before { background: var(--warning); box-shadow: 0 0 0 3px rgba(217,119,6,.15); }
+.cloud-status.error::before  { background: var(--danger);  box-shadow: 0 0 0 3px rgba(220,38,38,.15); }
+
+/* =====================================================================
+   4 · DASHBOARD POLISH  (Apple-iOS surfaces, calm shadows)
+   ===================================================================== */
+
+/* Frosted, sticky-feeling header */
+.header {
+  background: rgba(255, 255, 255, 0.8);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  backdrop-filter: saturate(180%) blur(18px);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Panels: softer corners + gentle lift instead of hard borders */
+.panel {
+  border-radius: var(--ios-radius);
+  box-shadow: var(--ios-shadow-soft);
+}
+
+/* Hero band on the dashboard — subtle brand gradient, not flat grey */
+.dash-hero {
+  border-radius: var(--ios-radius-lg);
+  background:
+    radial-gradient(700px 260px at 0% 0%, rgba(5,150,105,.10), transparent 60%),
+    linear-gradient(135deg, #ffffff 0%, #f6fbf9 100%);
+  border: 1px solid var(--border);
+  box-shadow: var(--ios-shadow-soft);
+}
+
+/* Stat tiles: clean cards with a calm hover */
+.dash-stat {
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: var(--ios-shadow-soft);
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+.dash-stat:hover { transform: translateY(-2px); box-shadow: var(--ios-shadow); }
+
+/* Alerts — rounder, softer fills */
+.alert { border-radius: 14px; }
+
+/* Attendance bars — smoother track + animated fill */
+.att-bar-wrap, .att-bar { border-radius: 999px; }
+.att-bar-fill {
+  border-radius: 999px;
+  transition: width .5s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* Buttons get the iOS "press" micro-interaction across the app */
+.btn { transition: transform .12s ease, box-shadow .15s ease, background .15s ease, color .15s ease; }
+.btn:active { transform: scale(.97); }
+
+/* Tab bar: pill-style active state */
+.tabs {
+  background: rgba(255, 255, 255, 0.7);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  backdrop-filter: saturate(180%) blur(14px);
+}
+.tab { border-radius: 10px; transition: background .15s ease, color .15s ease; }
+.tab.active { box-shadow: var(--ios-shadow-soft); }
+
+/* "NEW" badge on the Courses tab */
+.new-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-family: var(--font-mono);
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+/* =====================================================================
+   5 · COURSES KNOWLEDGE BASE  (renderLibrary)
+   ===================================================================== */
+
+.lib-search { margin-bottom: 20px; border-radius: 14px; }
+.lib-search:focus { box-shadow: var(--ios-ring); border-color: var(--accent); }
+
+.lib-group { margin-bottom: 26px; }
+.lib-group-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 2px 12px;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: .95rem;
+  color: var(--text);
+}
+.lib-group-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 7px;
+  font-family: var(--font-mono);
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.lib-group-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+.lib-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--ios-radius);
+  box-shadow: var(--ios-shadow-soft);
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+.lib-card:hover { transform: translateY(-2px); box-shadow: var(--ios-shadow); }
+.lib-card.open {
+  grid-column: 1 / -1;            /* expanded card spans the full row */
+  border-color: #bbf7d0;
+  box-shadow: var(--ios-shadow);
+  cursor: default;
+}
+
+.lib-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+}
+
+.lib-card-code {
+  flex-shrink: 0;
+  padding: 5px 9px;
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--accent-dark);
+  background: var(--accent-bg);
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+}
+.lib-card-main { flex: 1; min-width: 0; }
+.lib-card-title {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: .95rem;
+  color: var(--text);
+  line-height: 1.3;
+}
+.lib-card-short {
+  margin-top: 4px;
+  font-size: .82rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.lib-card-meta {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.lib-card-cr {
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  color: var(--text-faint);
+}
+.lib-card-caret {
+  color: var(--text-faint);
+  transform: rotate(90deg);
+  transition: transform .2s ease;
+}
+.lib-card.open .lib-card-caret { transform: rotate(-90deg); color: var(--accent); }
+
+.lib-card-body {
+  padding: 0 16px 18px;
+  cursor: default;
+  animation: libFade .22s ease;
+}
+@keyframes libFade { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+.lib-detailed {
+  margin: 0 0 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: .88rem;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+.lib-section { margin-bottom: 14px; }
+.lib-section-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+  font-family: var(--font-mono);
+  font-size: .76rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.lib-section-title svg { color: var(--accent); }
+
+.lib-list {
+  margin: 0;
+  padding-left: 18px;
+}
+.lib-list li {
+  margin-bottom: 5px;
+  font-size: .85rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.lib-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.lib-chip {
+  padding: 4px 10px;
+  font-size: .76rem;
+  color: var(--text-muted);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+/* =====================================================================
+   6 · AI ADVISOR CHAT  (renderAIChat)
+   ===================================================================== */
+
+.chat-panel { display: flex; flex-direction: column; }
+
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 180px;
+  max-height: 460px;
+  overflow-y: auto;
+  padding: 16px;
+  margin: 4px 0 12px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--ios-radius);
+}
+
+.chat-empty {
+  margin: auto 0;
+  text-align: center;
+  padding: 12px 4px;
+}
+.chat-empty-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: .92rem;
+  color: var(--text);
+}
+.chat-empty-title svg { color: var(--accent); }
+
+.chat-suggests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 14px;
+}
+.chat-suggest {
+  padding: 8px 12px;
+  font-size: .8rem;
+  text-align: left;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform .12s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.chat-suggest:hover {
+  border-color: var(--accent);
+  box-shadow: var(--ios-shadow-soft);
+  transform: translateY(-1px);
+}
+
+.chat-msg { display: flex; }
+.chat-msg.user { justify-content: flex-end; }
+.chat-msg.assistant { justify-content: flex-start; }
+
+.chat-bubble {
+  max-width: 82%;
+  padding: 10px 14px;
+  font-size: .88rem;
+  line-height: 1.55;
+  border-radius: 18px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.chat-msg.user .chat-bubble {
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: 6px;
+}
+.chat-msg.assistant .chat-bubble {
+  background: #fff;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 6px;
+}
+
+.chat-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.chat-input {
+  flex: 1;
+  resize: none;
+  max-height: 140px;
+  padding: 11px 14px;
+  font-family: var(--font-sans);
+  font-size: .9rem;
+  line-height: 1.5;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.chat-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--ios-ring);
+}
+.chat-send {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+.chat-send:disabled { opacity: .5; cursor: not-allowed; }
+
+/* =====================================================================
+   7 · RESPONSIVE TWEAKS
+   ===================================================================== */
+
+@media (max-width: 640px) {
+  .auth-card { margin: 18px 12px 4px; padding: 22px 18px; }
+  .lib-group-cards { grid-template-columns: 1fr; }
+  .acct-email { max-width: 96px; }
+  .chat-bubble { max-width: 90%; }
+}
+
+/* =====================================================================
+   8 · HOME HEADER + FOOTER + LANDING POLISH  (v2.1)
+   ===================================================================== */
+
+/* When the landing page is shown, hide the plain static SEO footer so we
+   only show the rich in-app footer. (Static footer still serves no-JS/SEO.) */
+body.view-home #site-footer { display: none; }
+
+/* ---- Shared brand lockup (header + footer) ---- */
+.home-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text);
+}
+.home-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--accent) 0%, #34d399 100%);
+  color: #fff;
+  font-size: .82rem;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, .28);
+}
+.home-brand-name { font-size: 1rem; letter-spacing: -.01em; }
+.home-brand-dot { color: var(--accent); }
+
+/* ---- Sticky frosted header ---- */
+.home-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.72);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  backdrop-filter: saturate(180%) blur(18px);
+  border-bottom: 1px solid rgba(2, 32, 22, 0.06);
+}
+.home-header-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 12px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.home-nav { display: flex; align-items: center; gap: 6px; }
+.home-nav-link {
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-family: var(--font-sans);
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color .15s ease, background .15s ease;
+}
+.home-nav-link:hover { color: var(--text); background: var(--bg-panel); }
+.home-nav-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: 6px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-size: .9rem;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+  background: linear-gradient(135deg, var(--accent) 0%, #10b981 100%);
+  box-shadow: 0 6px 16px rgba(5, 150, 105, .26);
+  transition: transform .14s ease, box-shadow .18s ease, filter .15s ease;
+}
+.home-nav-cta:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(5, 150, 105, .32); filter: brightness(1.03); }
+.home-nav-cta:active { transform: translateY(0) scale(.98); }
+.home-nav-cta svg { color: #fff; }
+
+/* push hero down a touch under the sticky header */
+.home-auth-anchor { scroll-margin-top: 84px; }
+#features, #import, #guides { scroll-margin-top: 84px; }
+
+/* ---- Landing pill + headline lift ---- */
+.login-pill {
+  box-shadow: var(--ios-shadow-soft);
+  border: 1px solid var(--ios-glass-border);
+  background: var(--ios-glass);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+/* soft glow halo behind the mascot */
+.hero-char-wrap { position: relative; }
+.hero-char-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 8% 8% 4% 8%;
+  z-index: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 45%, rgba(5,150,105,.18), rgba(52,211,153,.10) 45%, transparent 72%);
+  filter: blur(22px);
+}
+.hero-char, .hero-float-tag { position: relative; z-index: 1; }
+
+/* ---- Rich home footer ---- */
+.home-footer {
+  position: relative;
+  z-index: 1;
+  margin-top: 56px;
+  padding: 40px 26px 26px;
+  border-radius: var(--ios-radius-lg) var(--ios-radius-lg) 0 0;
+  background:
+    radial-gradient(700px 240px at 12% 0%, rgba(5,150,105,.06), transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #f5faf8 100%);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  box-shadow: var(--ios-shadow);
+}
+.home-footer-grid {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  gap: 34px;
+}
+.home-footer-brand { max-width: 340px; }
+.home-footer-blurb {
+  margin: 14px 0 18px;
+  font-size: .88rem;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+.home-dev-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 18px;
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: .9rem;
+  color: var(--text);
+  text-decoration: none;
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--ios-shadow-soft);
+  transition: transform .14s ease, box-shadow .18s ease, border-color .15s ease;
+}
+.home-dev-btn svg { color: var(--accent); }
+.home-dev-btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+  box-shadow: var(--ios-shadow);
+}
+.home-dev-arrow { display: inline-flex; transition: transform .18s ease; }
+.home-dev-btn:hover .home-dev-arrow { transform: translateX(3px); }
+
+.home-footer-title {
+  margin-bottom: 14px;
+  font-family: var(--font-mono);
+  font-size: .76rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.home-footer-links { list-style: none; margin: 0; padding: 0; }
+.home-footer-links li { margin-bottom: 10px; }
+.home-footer-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .88rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color .15s ease, transform .15s ease;
+}
+.home-footer-links a svg { color: var(--accent); opacity: .7; transition: transform .15s ease; }
+.home-footer-links a:hover { color: var(--accent-dark); transform: translateX(2px); }
+.home-footer-links a:hover svg { transform: translateX(2px); opacity: 1; }
+
+.home-footer-bar {
+  max-width: 1000px;
+  margin: 30px auto 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.home-footer-credit {
+  font-family: var(--font-mono);
+  font-size: .8rem;
+  color: var(--text-muted);
+}
+.home-footer-credit .hf-kw { color: var(--accent); }
+.home-footer-credit .hf-op { color: var(--text-faint); }
+.home-footer-credit .hf-link {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--bg-panel);
+  transition: background .15s ease;
+}
+.home-footer-credit .hf-link:hover { background: var(--accent-bg); color: var(--accent-dark); }
+.home-footer-made { font-size: .76rem; color: var(--text-faint); }
+
+/* ---- Responsive ---- */
+@media (max-width: 860px) {
+  .home-footer-grid { grid-template-columns: 1fr 1fr; }
+  .home-footer-brand { grid-column: 1 / -1; max-width: none; }
+}
+@media (max-width: 640px) {
+  .home-nav-link { display: none; }          /* keep header clean on mobile */
+  .home-header-inner { padding: 10px 16px; }
+  .home-footer { padding: 32px 18px 22px; }
+  .home-footer-grid { grid-template-columns: 1fr; gap: 26px; }
+  .home-footer-bar { flex-direction: column; align-items: flex-start; }
+}

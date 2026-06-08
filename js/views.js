@@ -6,13 +6,98 @@ function svgWrap(icon, size) {
   size = size || 16;
   return `<span style="width:${size}px;height:${size}px;display:inline-flex">${icon}</span>`;
 }
+/* Shared guide list — kept in one place so header + footer stay in sync. */
+const HOME_GUIDES = [
+  { href: './guides/calculate-gpa-iulms.html', label: 'Calculate GPA from IULMS' },
+  { href: './guides/fix-schedule-clash-iulms.html', label: 'Fix schedule clashes on IULMS' },
+  { href: './guides/check-prerequisites-iulms.html', label: 'Check prerequisites on IULMS' },
+  { href: './guides/iulms-student-portal-guide.html', label: 'IULMS portal: 5 hacks to know' },
+  { href: './guides/track-software-engineering-degree-iulms.html', label: 'Track BS(SE) progress at IU' },
+  { href: './guides/about-ctrlaltimran-iusemplanner.html', label: 'Who is CtrlAltImran?' },
+];
+
+/* Sticky top header shown on the home / landing page. */
+function renderHomeHeader() {
+  return `
+    <header class="home-header">
+      <div class="home-header-inner">
+        <a href="#top" class="home-brand">
+          <span class="home-brand-mark">IU</span>
+          <span class="home-brand-name">SemPlanner<span class="home-brand-dot">.ai</span></span>
+        </a>
+        <nav class="home-nav">
+          <a href="#features" class="home-nav-link">Features</a>
+          <a href="#guides" class="home-nav-link">Guides</a>
+          <a href="#import" class="home-nav-link">Import</a>
+          <a href="https://ctrlaltimran.com" target="_blank" rel="noopener" class="home-nav-link">Developer</a>
+          <a href="#home-auth" class="home-nav-cta">${svgWrap(ICON.user, 14)} Sign in</a>
+        </nav>
+      </div>
+    </header>`;
+}
+
+/* Rich footer shown on the home / landing page. */
+function renderHomeFooter() {
+  const guideLinks = HOME_GUIDES.map(g =>
+    `<li><a href="${g.href}">${svgWrap(ICON.arrow, 12)} ${esc(g.label)}</a></li>`
+  ).join('');
+
+  return `
+    <footer class="home-footer">
+      <div class="home-footer-grid">
+
+        <div class="home-footer-brand">
+          <a href="#top" class="home-brand">
+            <span class="home-brand-mark">IU</span>
+            <span class="home-brand-name">SemPlanner<span class="home-brand-dot">.ai</span></span>
+          </a>
+          <p class="home-footer-blurb">
+            A predictive student dashboard for Iqra University — one click pulls your full
+            IULMS profile and forecasts your semester. Built by students, for students.
+          </p>
+          <a href="https://ctrlaltimran.com" target="_blank" rel="noopener" class="home-dev-btn">
+            ${svgWrap(ICON.code, 16)} Meet the developer
+            <span class="home-dev-arrow">${svgWrap(ICON.arrow, 14)}</span>
+          </a>
+        </div>
+
+        <div class="home-footer-col" id="guides">
+          <div class="home-footer-title">Guides &amp; resources</div>
+          <ul class="home-footer-links">${guideLinks}</ul>
+        </div>
+
+        <div class="home-footer-col">
+          <div class="home-footer-title">Get started</div>
+          <ul class="home-footer-links">
+            <li><a href="#home-auth">${svgWrap(ICON.user, 12)} Log in</a></li>
+            <li><a href="#home-auth">${svgWrap(ICON.spark, 12)} Sign up — it's free</a></li>
+            <li><a href="#import">${svgWrap(ICON.book, 12)} Import from IULMS</a></li>
+            <li><a href="#features">${svgWrap(ICON.layers, 12)} Explore features</a></li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div class="home-footer-bar">
+        <span class="home-footer-credit">
+          <span class="hf-kw">const</span> creator <span class="hf-op">=</span>
+          <a href="https://ctrlaltimran.com" target="_blank" rel="noopener" class="hf-link">'ctrlaltimran.com'</a>;
+        </span>
+        <span class="home-footer-made">
+          Built for Web Engineering · Sir Muhammad Farhan · by Syed Imran Murtaza (65196) &amp; M. Raza (63234)
+        </span>
+      </div>
+    </footer>`;
+}
+
 function renderLogin() {
   return `
-    <div class="login">
+    <div class="login" id="top">
+      ${renderHomeHeader()}
       <div class="login-wrap">
 
         <div style="text-align:center;margin-bottom:16px;">
-          <div class="login-pill">v2.0 · predictive dashboard · IUSemPlanner.ai</div>
+          <div class="login-pill">v2.1 · predictive dashboard · accounts + cloud sync</div>
         </div>
 
         <div class="hero-split">
@@ -41,6 +126,8 @@ function renderLogin() {
           </div>
         </div>
 
+        <div id="home-auth" class="home-auth-anchor">${renderAuthCard()}</div>
+
         <div class="demo-preview">
           <div class="demo-head">
             <div style="font-weight:700;font-size:14px">Live schedule preview</div>
@@ -62,7 +149,7 @@ function renderLogin() {
           </div>
         </div>
 
-        <div class="bm-promo">
+        <div class="bm-promo" id="import">
           <div class="bm-promo-left">
             <div class="bm-promo-badge">${svgWrap(ICON.zap, 12)} NEW · Fastest way</div>
             <div class="bm-promo-title">One-click import from IULMS</div>
@@ -121,7 +208,7 @@ function renderLogin() {
           </button>
         </div>
 
-        <div class="features-row">
+        <div class="features-row" id="features">
           <div class="feature-card">
             <div class="feature-icon">${ICON.download}</div>
             <div class="feature-title">One-click IULMS import</div>
@@ -144,13 +231,67 @@ function renderLogin() {
           </div>
         </div>
 
-        <p class="login-footer">// no signup, no database — your data stays in this browser tab</p>
-        <p class="login-footer">// Built for the Web Engineering course by Sir Muhammad Farhan,</p>
-        <p class="login-footer">// Developed by Syed Imran Murtaza (65196) and M. Raza (63234).</p>
-
       </div>
+      ${renderHomeFooter()}
     </div>
   `;
+}
+
+/* ── Account card on the login screen ──
+   Email/password sign in + sign up, Google sign in, and a "continue as guest"
+   escape hatch. Gracefully degrades to guest-only if Supabase isn't set up. */
+function renderAuthCard() {
+  const configured = window.IUSPAuth && window.IUSPAuth.authAvailable();
+  const isSignup = state.authMode === 'signup';
+  const loading = state.authLoading;
+
+  if (!configured) {
+    return `
+      <div class="auth-card">
+        <div class="auth-head">
+          <div class="auth-title">${svgWrap(ICON.user, 16)} Save your data across devices</div>
+          <div class="auth-sub">Accounts aren't connected on this build yet. You can still use everything as a guest — your data stays in this browser.</div>
+        </div>
+        <button class="btn btn-primary auth-guest-btn" data-auth="guest">Continue as guest ${svgWrap(ICON.arrow, 14)}</button>
+      </div>`;
+  }
+
+  return `
+    <div class="auth-card">
+      <div class="auth-head">
+        <div class="auth-title">${svgWrap(ICON.user, 16)} ${isSignup ? 'Create your account' : 'Sign in to your account'}</div>
+        <div class="auth-sub">${isSignup ? 'Save your IULMS profile, transcript and plans to the cloud — reachable from any device.' : 'Welcome back. Your saved data will load automatically.'}</div>
+      </div>
+
+      <button class="btn btn-google" data-auth="google" ${loading ? 'disabled' : ''}>
+        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Continue with Google
+      </button>
+
+      <div class="auth-divider"><span>or</span></div>
+
+      <div class="auth-field">
+        <label>email</label>
+        <input type="email" id="auth-email" class="field" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label>password</label>
+        <input type="password" id="auth-password" class="field" placeholder="••••••••" autocomplete="${isSignup ? 'new-password' : 'current-password'}">
+      </div>
+
+      ${state.authError ? `<div class="auth-error">${esc(state.authError)}</div>` : ''}
+
+      <button class="btn btn-primary auth-submit" data-auth="submit" ${loading ? 'disabled' : ''}>
+        ${loading ? `<span class="spinner"></span> working…` : (isSignup ? 'Create account' : 'Sign in')}
+      </button>
+
+      <div class="auth-foot">
+        ${isSignup ? 'Already have an account?' : 'New here?'}
+        <button class="auth-link" data-auth="toggle">${isSignup ? 'Sign in' : 'Create one'}</button>
+        <span class="auth-dot">·</span>
+        <button class="auth-link" data-auth="guest">Continue as guest</button>
+      </div>
+    </div>`;
 }
 
 function renderApp() {
@@ -162,6 +303,7 @@ function renderApp() {
   if (state.tab === 'progress') body = renderProgress();
   if (state.tab === 'transcript') body = renderTranscript();
   if (state.tab === 'courses') body = renderCatalog();
+  if (state.tab === 'library') body = renderLibrary();
   if (state.tab === 'planner') body = renderPlanner();
   if (state.tab === 'ai') body = renderAI();
 
@@ -182,12 +324,13 @@ function renderApp() {
       : `<span class="brand-meta">${svgWrap(ICON.hash, 12)}${state.courses.length} courses</span>`}
         </div>
         <div class="header-right">
+          ${state.account ? `<span class="acct-pill" title="${esc(state.account.email)}">${svgWrap(ICON.user, 12)}<span class="acct-email">${esc(state.account.email)}</span><span id="cloud-status" class="cloud-status"></span></span>` : ''}
           <span class="plan-pill ${isPro ? 'pro' : 'free'}">
             ${svgWrap(isPro ? ICON.crown : ICON.code, 14)}
             ${isPro ? 'Pro' : 'Free'}
           </span>
           <button class="icon-btn-hdr" data-action="open-settings" title="Settings">${svgWrap(ICON.settings)}</button>
-          <button class="icon-btn-hdr" data-action="logout" title="Logout">${svgWrap(ICON.logout)}</button>
+          <button class="icon-btn-hdr" data-action="logout" title="${state.account ? 'Sign out' : 'Log out'}">${svgWrap(ICON.logout)}</button>
         </div>
       </div>
     </header>
@@ -197,7 +340,8 @@ function renderApp() {
         ${tabBtn('timetable', 'Timetable', ICON.calendar, false, 0, (state.currentSchedule && state.currentSchedule.length) ? null : null)}
         ${tabBtn('progress', 'Progress', ICON.trophy)}
         ${tabBtn('transcript', 'Transcript', ICON.file)}
-        ${tabBtn('courses', 'Courses', ICON.book)}
+        ${tabBtn('library', 'Courses', ICON.book)}
+        ${tabBtn('courses', 'Catalog', ICON.layers)}
         ${tabBtn('planner', 'Planner', ICON.target, false, plannedCount)}
         ${tabBtn('ai', 'AI Insights', ICON.brain, true)}
       </div>
@@ -473,6 +617,104 @@ function renderCatalog() {
         ${filters.map(f => `<button class="filter-chip ${state.filter === f.key ? 'active' : ''}" data-filter="${f.key}">${f.label}<span class="count">${f.count}</span></button>`).join('')}
       </div>
       ${rows.length === 0 ? `<div class="empty"><p class="muted">No courses match this filter.</p></div>` : `<div class="catalog-list">${rows}</div>`}
+    </div>
+  `;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   COURSES (knowledge base) VIEW
+   A searchable study library of the BS(SE) program. Grouped by semester so it
+   doubles as a "course selection by semester" reference. Each card expands to
+   show detailed notes, topics, exam prep and keywords. Data: js/coursedata.js
+   ════════════════════════════════════════════════════════════════════════ */
+function renderLibrary() {
+  const lib = window.COURSE_LIBRARY || [];
+  const q = (state.libQuery || '').toLowerCase().trim();
+
+  /* Search across code, title, keywords and topics. */
+  const matches = (c) => {
+    if (!q) return true;
+    const hay = [c.code, c.title, c.short, (c.keywords || []).join(' '), (c.topics || []).join(' ')]
+      .join(' ').toLowerCase();
+    return hay.includes(q);
+  };
+  const filtered = lib.filter(matches);
+
+  /* Group by semester (0 / missing = electives). */
+  const groups = {};
+  for (const c of filtered) {
+    const key = c.semester && c.semester >= 1 && c.semester <= 8 ? c.semester : 'elec';
+    (groups[key] = groups[key] || []).push(c);
+  }
+  const orderedKeys = [1, 2, 3, 4, 5, 6, 7, 8, 'elec'].filter(k => groups[k]);
+
+  const cardFor = (c) => {
+    const open = state.libOpen === c.code;
+    const chips = (arr) => (arr || []).map(x => `<span class="lib-chip">${esc(x)}</span>`).join('');
+    const bullets = (arr) => (arr || []).map(x => `<li>${esc(x)}</li>`).join('');
+    return `
+      <div class="lib-card ${open ? 'open' : ''}" data-lib-open="${esc(c.code)}">
+        <div class="lib-card-head">
+          <div class="lib-card-code">${esc(c.code)}</div>
+          <div class="lib-card-main">
+            <div class="lib-card-title">${esc(c.title)}</div>
+            <div class="lib-card-short">${esc(c.short)}</div>
+          </div>
+          <div class="lib-card-meta">
+            <span class="lib-card-cr">${c.credits} cr</span>
+            <span class="lib-card-caret">${svgWrap(ICON.arrow, 14)}</span>
+          </div>
+        </div>
+        ${open ? `
+          <div class="lib-card-body" onclick="event.stopPropagation()">
+            <p class="lib-detailed">${esc(c.detailed)}</p>
+
+            <div class="lib-section">
+              <div class="lib-section-title">${svgWrap(ICON.layers, 13)} Important topics</div>
+              <div class="lib-chips">${chips(c.topics)}</div>
+            </div>
+
+            <div class="lib-section">
+              <div class="lib-section-title">${svgWrap(ICON.book, 13)} Study notes</div>
+              <ul class="lib-list">${bullets(c.notes)}</ul>
+            </div>
+
+            <div class="lib-section">
+              <div class="lib-section-title">${svgWrap(ICON.target, 13)} Exam preparation</div>
+              <ul class="lib-list">${bullets(c.examPrep)}</ul>
+            </div>
+
+            <div class="lib-section">
+              <div class="lib-section-title">${svgWrap(ICON.hash, 13)} Keywords</div>
+              <div class="lib-chips">${chips(c.keywords)}</div>
+            </div>
+          </div>` : ''}
+      </div>`;
+  };
+
+  const sections = orderedKeys.map(k => {
+    const label = k === 'elec' ? 'Electives' : 'Semester ' + k;
+    return `
+      <div class="lib-group">
+        <div class="lib-group-head"><span>${label}</span><span class="lib-group-count">${groups[k].length}</span></div>
+        <div class="lib-group-cards">${groups[k].map(cardFor).join('')}</div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="container">
+      <div class="page-head">
+        <div>
+          <h2 class="page-title">Courses</h2>
+          <p class="page-sub">// study guide · ${lib.length} courses · topics, notes, exam prep & keywords</p>
+        </div>
+      </div>
+
+      <input type="text" class="search-input lib-search" placeholder="Search courses, topics or keywords (e.g. 'sorting', 'sql', 'oop')..." value="${esc(state.libQuery)}" data-f="lib-search">
+
+      ${filtered.length === 0
+      ? `<div class="empty"><p class="muted">No courses match "${esc(state.libQuery)}". Try another keyword.</p></div>`
+      : sections}
     </div>
   `;
 }
@@ -820,8 +1062,56 @@ function renderAI() {
         </div>
         ${recBox}
       </div>
+
+      ${renderAIChat()}
     </div>
   `;
+}
+
+/* ── Data-aware AI chat ──
+   The student can ask anything about their own data or coursework. ai.js feeds
+   the model the FULL context (transcript, attendance, schedule, midterms,
+   exams, course list + the knowledge base), so answers are grounded. */
+function renderAIChat() {
+  const chat = state.aiChat || { messages: [], loading: false, error: null };
+  const suggestions = [
+    'What is my current CGPA and how is it trending?',
+    'Which courses am I at attendance risk in?',
+    'Explain Big-O complexity for my DSA course',
+    'What should I study first for my in-progress courses?',
+  ];
+
+  const bubbles = chat.messages.map(m => `
+    <div class="chat-msg ${m.role}">
+      <div class="chat-bubble">${esc(m.text)}</div>
+    </div>`).join('');
+
+  const emptyState = chat.messages.length === 0
+    ? `<div class="chat-empty">
+         <div class="chat-empty-title">${svgWrap(ICON.brain, 18)} Ask anything about your data or courses</div>
+         <div class="chat-suggests">
+           ${suggestions.map(s => `<button class="chat-suggest" data-chat-suggest="${esc(s)}">${esc(s)}</button>`).join('')}
+         </div>
+       </div>`
+    : '';
+
+  return `
+    <div class="ai-panel chat-panel">
+      <div class="ai-head">
+        <div class="ai-title">${svgWrap(ICON.brain, 18)}Ask the advisor</div>
+        <div class="panel-meta">knows your full profile + course notes</div>
+      </div>
+      <div class="chat-window">
+        ${emptyState}
+        ${bubbles}
+        ${chat.loading ? `<div class="chat-msg assistant"><div class="chat-bubble"><span class="spinner"></span> thinking…</div></div>` : ''}
+        ${chat.error ? `<div class="ai-error">${esc(chat.error)}</div>` : ''}
+      </div>
+      <div class="chat-input-row">
+        <textarea id="aiChatInput" class="chat-input" rows="1" placeholder="e.g. How many classes can I miss in Information Security?"></textarea>
+        <button class="btn btn-primary chat-send" data-action="ai-chat-send" ${chat.loading ? 'disabled' : ''}>${svgWrap(ICON.arrow, 16)}</button>
+      </div>
+    </div>`;
 }
 
 function renderImportModal() {
