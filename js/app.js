@@ -250,6 +250,7 @@ async function handleAuthAction(action) {
     if (_pendingImport) applyPendingImport();
     state.tab = (state.courses.length || state.transcript.length) ? 'dashboard' : 'progress';
     render();
+    window.scrollTo(0, 0);
     return;
   }
   if (action === 'google') {
@@ -351,6 +352,7 @@ document.addEventListener('click', (e) => {
     if (_pendingImport) applyPendingImport();
     state.tab = (state.courses.length || state.transcript.length) ? 'dashboard' : 'progress';
     render();
+    window.scrollTo(0, 0);
     return;
   }
 
@@ -363,6 +365,7 @@ document.addEventListener('click', (e) => {
     state.modal = 'import';
     state.uploadMode = 'bookmark';
     render();
+    window.scrollTo(0, 0);
     return;
   }
 
@@ -370,6 +373,7 @@ document.addEventListener('click', (e) => {
   if (tabBtnEl) {
     state.tab = tabBtnEl.dataset.tab;
     render();
+    window.scrollTo(0, 0);
     return;
   }
 
@@ -815,6 +819,7 @@ async function enterApp(account) {
 
   state.tab = 'dashboard';
   render();
+  window.scrollTo(0, 0);
 }
 
 /* ── Auth initialization (runs once at startup) ── */

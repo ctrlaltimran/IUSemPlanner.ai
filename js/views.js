@@ -23,8 +23,8 @@ function renderHomeHeader() {
     <header class="home-header">
       <div class="home-header-inner">
         <a href="#top" class="home-brand">
-          <span class="home-brand-mark">IU</span>
-          <span class="home-brand-name">SemPlanner<span class="home-brand-dot">.ai</span></span>
+          <img src="./media/main svg now.jpg" class="home-brand-logo" alt="IU">
+          <span class="home-brand-name">IUSemPlanner<span class="home-brand-dot">.ai</span></span>
         </a>
         <nav class="home-nav">
           <a href="#features" class="home-nav-link">Features</a>
@@ -50,14 +50,16 @@ function renderHomeFooter() {
     `<li><a href="${g.href}">${svgWrap(ICON.arrow, 12)} ${esc(g.label)}</a></li>`
   ).join('');
 
+  const hasUser = state && state.user !== null;
+
   return `
     <footer class="home-footer">
       <div class="home-footer-grid">
 
         <div class="home-footer-brand">
           <a href="#top" class="home-brand">
-            <span class="home-brand-mark">IU</span>
-            <span class="home-brand-name">SemPlanner<span class="home-brand-dot">.ai</span></span>
+            <img src="./media/main svg now.jpg" class="home-brand-logo" alt="IU">
+            <span class="home-brand-name">IUSemPlanner<span class="home-brand-dot">.ai</span></span>
           </a>
           <p class="home-footer-blurb">
             A predictive student dashboard for Iqra University — one click pulls your full
@@ -75,12 +77,19 @@ function renderHomeFooter() {
         </div>
 
         <div class="home-footer-col">
-          <div class="home-footer-title">Get started</div>
+          <div class="home-footer-title">${hasUser ? 'Dashboard Links' : 'Get started'}</div>
           <ul class="home-footer-links">
-            <li><a href="javascript:void(0)" data-action="open-auth" data-auth-mode="signin">${svgWrap(ICON.user, 12)} Log in</a></li>
-            <li><a href="javascript:void(0)" data-action="open-auth" data-auth-mode="signup">${svgWrap(ICON.spark, 12)} Sign up — it's free</a></li>
-            <li><a href="#import">${svgWrap(ICON.book, 12)} Import from IULMS</a></li>
-            <li><a href="#features">${svgWrap(ICON.layers, 12)} Explore features</a></li>
+            ${hasUser ? `
+              <li><a href="javascript:void(0)" data-tab="dashboard">${svgWrap(ICON.chart, 12)} Dashboard</a></li>
+              <li><a href="javascript:void(0)" data-tab="timetable">${svgWrap(ICON.calendar, 12)} Timetable</a></li>
+              <li><a href="javascript:void(0)" data-action="open-import">${svgWrap(ICON.book, 12)} Import data</a></li>
+              <li><a href="javascript:void(0)" data-tab="planner">${svgWrap(ICON.target, 12)} Semester Planner</a></li>
+            ` : `
+              <li><a href="javascript:void(0)" data-action="open-auth" data-auth-mode="signin">${svgWrap(ICON.user, 12)} Log in</a></li>
+              <li><a href="javascript:void(0)" data-action="open-auth" data-auth-mode="signup">${svgWrap(ICON.spark, 12)} Sign up — it's free</a></li>
+              <li><a href="#import">${svgWrap(ICON.book, 12)} Import from IULMS</a></li>
+              <li><a href="#features">${svgWrap(ICON.layers, 12)} Explore features</a></li>
+            `}
           </ul>
         </div>
 
@@ -111,7 +120,7 @@ function renderLogin() {
         <div class="hero-split">
           <div class="hero-left">
             <h1 class="hero-headline" style="font-family: 'JetBrains Mono', monospace; font-size: clamp(28px, 4vw, 50px); letter-spacing: -0.02em; line-height: 1.3;">
-              <span style="color: #059669; font-size: 16px; display: block; margin-bottom: 12px; font-weight: 600; letter-spacing: 0;">// from spreadsheet to dashboard</span>
+              <span style="color: var(--accent); font-size: 16px; display: block; margin-bottom: 12px; font-weight: 600; letter-spacing: 0;">// from spreadsheet to dashboard</span>
               <span style="color: #111827;">Your full IULMS profile,</span><br>
               <span style="color: #6b7280;">in</span>
               <em style="color: #d97706; font-style: normal; font-weight: 800; position: relative; padding: 2px 10px; background: #fffbeb; border-radius: 8px; border: 1px solid #fde68a; display: inline-block; margin-left: 4px; vertical-align: text-bottom;">
@@ -123,14 +132,6 @@ function renderLogin() {
               one bookmark pulls all six and forecasts your end-of-semester CGPA.
               <b>Built by students of IQRA University, for its students.</b>
             </p>
-          </div>
-          <div class="hero-right">
-            <div class="hero-char-wrap">
-              <img src="./media/iui.png" alt="IUSemPlanner mascot" class="hero-char">
-              <div class="hero-float-tag t1">6 pages, 1 click</div>
-              <div class="hero-float-tag t2">CGPA forecast</div>
-              <div class="hero-float-tag t3">Attendance alerts</div>
-            </div>
           </div>
         </div>
 
@@ -201,16 +202,16 @@ function renderLogin() {
           <button class="plan-card pro" data-action="open-auth" data-auth-mode="signup">
             <div class="plan-head">
               <span class="plan-tag">Pro Plan</span>
-              <span style="width:20px;height:20px;color:#34d399">${ICON.crown}</span>
+              <span style="width:20px;height:20px;color:#60a5fa">${ICON.crown}</span>
             </div>
             <div class="plan-name">Pro Student</div>
             <p class="plan-desc">Everything in Free, plus image upload (vision AI), AI summary, recommendations, and bring-your-own API key.</p>
             <ul class="plan-features">
               <li>${svgWrap(`<span class="check">${ICON.check}</span>`, 14)}all free features</li>
-              <li><span class="spark" style="width:14px;height:14px;display:inline-flex;color:#34d399">${ICON.spark}</span>image upload (vision)</li>
-              <li><span class="spark" style="width:14px;height:14px;display:inline-flex;color:#34d399">${ICON.spark}</span>ai progress summary</li>
-              <li><span class="spark" style="width:14px;height:14px;display:inline-flex;color:#34d399">${ICON.spark}</span>smart recommendations</li>
-              <li><span class="spark" style="width:14px;height:14px;display:inline-flex;color:#34d399">${ICON.spark}</span>your own api key</li>
+              <li><span class="spark" style="width:14px;height:14px;display:inline-flex;color:#60a5fa">${ICON.spark}</span>image upload (vision)</li>
+              <li><span class="spark" style="width:14px;height:14px;display:inline-flex;color:#60a5fa">${ICON.spark}</span>ai progress summary</li>
+              <li><span class="spark" style="width:14px;height:14px;display:inline-flex;color:#60a5fa">${ICON.spark}</span>smart recommendations</li>
+              <li><span class="spark" style="width:14px;height:14px;display:inline-flex;color:#60a5fa">${ICON.spark}</span>your own api key</li>
             </ul>
             <div class="plan-cta">continue as pro ${svgWrap(ICON.arrow, 14)}</div>
           </button>
@@ -305,8 +306,6 @@ function renderAuthCard(isModal = false) {
       <div class="auth-foot">
         ${isSignup ? 'Already have an account?' : 'New here?'}
         <button class="auth-link" data-auth="toggle">${isSignup ? 'Sign in' : 'Create one'}</button>
-        <span class="auth-dot">·</span>
-        <button class="auth-link" data-auth="guest">Continue as guest</button>
       </div>
     </div>`;
 }
@@ -342,8 +341,8 @@ function renderApp() {
     <header class="header">
       <div class="header-inner">
         <div class="brand">
-          <span class="brand-mark">IU</span>
-          <span class="brand-name">SemPlanner.ai</span>
+          <img src="./media/main svg now.jpg" class="brand-logo" alt="IU">
+          <span class="brand-name">IUSemPlanner.ai</span>
           ${firstName
       ? `<span class="brand-meta">${svgWrap(ICON.user, 12)}${esc(firstName)}</span>`
       : `<span class="brand-meta">${svgWrap(ICON.hash, 12)}${state.courses.length} courses</span>`}
@@ -378,6 +377,7 @@ function renderApp() {
         <button class="icon-btn-hdr" data-action="dismiss-banner" style="margin-left:auto; cursor:pointer;">${svgWrap(ICON.close, 14)}</button>
       </div>` : ''}
     <main>${body}</main>
+    ${renderHomeFooter()}
     ${state.modal === 'import' ? renderImportModal() : ''}
     ${state.modal === 'settings' ? renderSettingsModal() : ''}
     ${state.modal === 'addCustom' ? renderAddCustomModal() : ''}
@@ -477,7 +477,7 @@ function renderProgress() {
           <div class="ring">
             <svg width="200" height="200">
               <circle cx="100" cy="100" r="${r}" stroke="rgba(255,255,255,.1)" stroke-width="14" fill="none"/>
-              <circle cx="100" cy="100" r="${r}" stroke="#34d399" stroke-width="14" fill="none"
+              <circle cx="100" cy="100" r="${r}" stroke="#60a5fa" stroke-width="14" fill="none"
                 stroke-dasharray="${circ}" stroke-dashoffset="${offset}" stroke-linecap="round"
                 style="transition:stroke-dashoffset .8s ease"/>
             </svg>
@@ -1599,7 +1599,7 @@ function renderDashboard() {
           const neededForExpected = Math.max(0, band.min - currentMarks);
 
           if (neededForExpected <= 0) {
-            finalsNote = `<div style="font-size:11px; color:#059669; margin-top:4px; font-weight:600;">✨ Secured a ${p.expected} already!</div>`;
+            finalsNote = `<div style="font-size:11px; color:#1e2a78; margin-top:4px; font-weight:600;">✨ Secured a ${p.expected} already!</div>`;
           } else if (remainingPool === 40) {
             finalsNote = `<div style="font-size:11px; color:#d97706; margin-top:4px; font-weight:600; background:#fffbeb; padding:2px 6px; border-radius:4px; display:inline-block; border:1px solid #fde68a;">🎯 Need ${neededForExpected}/40 on Final for a ${p.expected}</div>`;
           } else {
