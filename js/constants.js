@@ -41,6 +41,8 @@ const DAYS = [
   { key: 'wed', label: 'WED', full: 'Wednesday' },
   { key: 'thu', label: 'THU', full: 'Thursday' },
   { key: 'fri', label: 'FRI', full: 'Friday' },
+  { key: 'sat', label: 'SAT', full: 'Saturday' },
+  { key: 'sun', label: 'SUN', full: 'Sunday' },
 ];
 
 const HOURS = Array.from({ length: 11 }, (_, i) => i + 8);

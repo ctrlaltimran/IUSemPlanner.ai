@@ -292,13 +292,14 @@ function parseIULMSBookmarkData(payload) {
 function parseBookmarkPayloadV2(p) {
   const courses = p.courseListText ? parseIULMS(p.courseListText) : [];
 
-  /* Enrich schedule entries by extracting structured fields from the raw text. */
-  const scheduleRaw = (p.schedule || []).map(s => ({
-    day: normalizeDay(s.day),
-    rawDay: s.day,
-    raw: s.raw,
-    ...extractScheduleFields(s.raw),
-  })).filter(s => s.day && (s.courseTitle || s.edpCode || s.startTime));
+  const scheduleRaw = (p.schedule || [])
+    .filter(s => s.raw && s.day && normalizeDay(s.raw.trim()) !== normalizeDay(s.day))
+    .map(s => ({
+      day: normalizeDay(s.day),
+      rawDay: s.day,
+      raw: s.raw,
+      ...extractScheduleFields(s.raw),
+    })).filter(s => s.day && (s.courseTitle || s.edpCode || s.startTime));
 
   // Merge fragmented schedule blocks
   const schedule = [];
@@ -386,15 +387,18 @@ function extractScheduleFields(text) {
   const lines = text.split(/[\n;]/).map(l => l.trim()).filter(Boolean)
     .filter(l => !timeRe.test(l) && !/^EDP/i.test(l) && !/^Course Code/i.test(l));
     
-  lines.forEach(l => {
+  // Filter out any lines that are just day names
+  const validLines = lines.filter(l => !normalizeDay(l));
+
+  validLines.forEach(l => {
     if (/^Course Title\s*:/i.test(l)) out.courseTitle = l.replace(/^Course Title\s*:/i, '').trim();
     else if (/^Faculty\s*:/i.test(l)) out.faculty = l.replace(/^Faculty\s*:/i, '').trim();
     else if (/^Location\s*:/i.test(l)) out.location = l.replace(/^Location\s*:/i, '').trim();
   });
 
-  if (!out.courseTitle && lines.length >= 1 && !lines[0].includes(':')) out.courseTitle = lines[0];
-  if (!out.faculty && lines.length >= 2 && !lines[1].includes(':')) out.faculty = lines[1];
-  if (!out.location && lines.length >= 3 && !lines[2].includes(':')) out.location = lines.slice(2).join(' · ');
+  if (!out.courseTitle && validLines.length >= 1 && !validLines[0].includes(':')) out.courseTitle = validLines[0];
+  if (!out.faculty && validLines.length >= 2 && !validLines[1].includes(':')) out.faculty = validLines[1];
+  if (!out.location && validLines.length >= 3 && !validLines[2].includes(':')) out.location = validLines.slice(2).join(' · ');
 
   return out;
 }
