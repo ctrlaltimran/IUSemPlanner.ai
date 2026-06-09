@@ -72,7 +72,8 @@ const STATUS_KEYWORDS = [
   'Course not Offered',
   'In Progress',
   'Pre Requisite not cleared',
-  'Refer below for Electives'
+  'Refer below for Electives',
+  'To be taken'
 ];
 
 const GRADES = ['A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F'];

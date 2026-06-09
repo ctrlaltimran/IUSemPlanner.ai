@@ -1,341 +1,268 @@
-/* SUPER-BOOKMARKLET v2.1
-   Silently scrapes the entire IULMS student profile in the background:
-     1. User name (from sic.php — current page)
-     2. Course list (from current page tables)
-     3. Attendance (/sic/StudentAttendance.php)
-     4. Transcript (/sic/Transcript.php)
-     5. Weekly schedule (/sic/Schedule.php)
-     6. Midterm results (/sic/ExamResultMid.php)
-     7. Exam schedule (/sic/examschedule.php) — optional, may not exist
-*/
+/* ============================================================================
+   SUPER-BOOKMARKLET  v2.2
+   ----------------------------------------------------------------------------
+   Runs ON the IULMS page (iulms.edu.pk) where the student is already logged in.
+   It silently fetches every relevant page in the background and bundles the
+   data into one payload, then redirects to IUSemPlanner with the data in the
+   URL hash.
 
-const BOOKMARKLET_TARGET = window.location.origin + window.location.pathname;
+   IMPORTANT FIX (v2.2):
+     • Courses + profile are now read from the Registration / Curriculum page
+       directly (fetched in the background) instead of "the current page", so
+       the bookmark works no matter which IULMS page you click it on.
+     • The TRANSCRIPT is now pulled from the data service that the Transcript
+       page itself calls (SICDataService.php → JSON). The old code scraped the
+       Transcript HTML, but that page is empty until its own AJAX call runs —
+       which is exactly why the transcript never transferred.
+     • The weekly SCHEDULE now also captures the class time (it was being lost).
 
-const BOOKMARKLET_SOURCE = `(async function(){
-  var TARGET = '${BOOKMARKLET_TARGET}';
-  var overlay = null;
+   The scraping helpers below are written as normal functions so they can be
+   unit-tested. buildBookmarkletSource() serialises them into the bookmarklet.
+   ========================================================================== */
 
-  function showOverlay(){
-    overlay = document.createElement('div');
-    overlay.id = 'iusp-bm-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(15,23,42,0.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;';
-    overlay.innerHTML = '<div style="background:#fff;padding:28px 32px;border-radius:16px;box-shadow:0 24px 64px rgba(0,0,0,0.3);text-align:center;min-width:340px;max-width:90%;border:1px solid #e5e7eb;"><div style="font-size:11px;font-weight:700;color:#1e2a78;letter-spacing:0.12em;margin-bottom:6px;font-family:ui-monospace,SFMono-Regular,monospace;">IUSEMPLANNER.AI \u00b7 v2.0</div><div style="font-size:18px;font-weight:700;color:#0a0a0a;margin-bottom:6px;">Extracting your academic profile</div><div id="iusp-bm-status" style="font-size:13px;color:#525252;margin-bottom:18px;min-height:18px;">Initializing\u2026</div><div style="width:100%;height:6px;background:#f1f5f9;border-radius:999px;overflow:hidden;"><div id="iusp-bm-bar" style="width:0%;height:100%;background:linear-gradient(90deg,#1e2a78,#3b82f6);border-radius:999px;transition:width 300ms ease;"></div></div><div id="iusp-bm-sub" style="margin-top:14px;font-size:11px;color:#9ca3af;font-family:ui-monospace,SFMono-Regular,monospace;letter-spacing:0.04em;">// fetching silently \u2014 do not close this tab</div></div>';
-    document.body.appendChild(overlay);
+/* ---- pure DOM helpers (serialised into the bookmarklet) ---- */
+
+function _bm_cellText(c) {
+  return ((c.innerText || c.textContent || '') + '').replace(/\s+/g, ' ').trim();
+}
+function _bm_pad(n) {
+  n = String(n);
+  return n.length < 2 ? '0' + n : n;
+}
+function _bm_parseTimeRange(text) {
+  var out = { startTime: '', endTime: '' };
+  if (!text) return out;
+  var m = text.match(/(\d{1,2})[:.](\d{2})\s*(am|pm)?\s*[\/\-\u2013to]+\s*(\d{1,2})[:.](\d{2})\s*(am|pm)?/i);
+  if (!m) return out;
+  var h1 = parseInt(m[1], 10), m1 = m[2], a1 = m[3];
+  var h2 = parseInt(m[4], 10), m2 = m[5], a2 = m[6];
+  if (a1 && a1.toLowerCase() === 'pm' && h1 < 12) h1 += 12;
+  if (a1 && a1.toLowerCase() === 'am' && h1 === 12) h1 = 0;
+  if (a2 && a2.toLowerCase() === 'pm' && h2 < 12) h2 += 12;
+  if (a2 && a2.toLowerCase() === 'am' && h2 === 12) h2 = 0;
+  out.startTime = _bm_pad(h1) + ':' + m1;
+  out.endTime = _bm_pad(h2) + ':' + m2;
+  return out;
+}
+
+/* Registration / Curriculum page → { profile, courseListText } */
+function _bm_scrapeRegistration(doc) {
+  var T = _bm_cellText;
+  var profile = { name: null, regNo: null, program: null, creditsRequired: null, creditsCompleted: null, creditsRemaining: null };
+
+  var tds = doc.querySelectorAll('td');
+  for (var i = 0; i < tds.length; i++) {
+    var label = T(tds[i]).replace(/:\s*$/, '').trim().toLowerCase();
+    var val = tds[i + 1] ? T(tds[i + 1]) : '';
+    if (label === 'name' && !profile.name) profile.name = val;
+    else if ((label === 'reg. number' || label === 'reg number' || label === 'registration number') && !profile.regNo) profile.regNo = val;
+    else if (label === 'program' && !profile.program) profile.program = val;
+    else if (label === 'credit hours required' && profile.creditsRequired == null) profile.creditsRequired = parseInt(val, 10) || null;
+    else if (label === 'credit hours completed' && profile.creditsCompleted == null) profile.creditsCompleted = parseInt(val, 10) || null;
+    else if (label === 'credit hours remaining' && profile.creditsRemaining == null) profile.creditsRemaining = parseInt(val, 10) || null;
   }
-  function setStatus(text, pct){
-    var s = document.getElementById('iusp-bm-status');
-    var b = document.getElementById('iusp-bm-bar');
-    if(s) s.textContent = text;
-    if(b) b.style.width = Math.min(100, Math.max(0, pct)) + '%';
-  }
-  function removeOverlay(){
-    if(overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
-  }
-  function failExit(msg){
-    removeOverlay();
-    alert('IUSemPlanner\\n\\n' + msg + '\\n\\nMake sure you are on the Registration page where your Course List is visible.');
+  if (!profile.name) {
+    var li = doc.querySelector('.logininfo a');
+    if (li) profile.name = T(li);
   }
 
-  try {
-    showOverlay();
-
-    /* Verify we are on a page with tables (Registration page) */
-    var hasTables = document.querySelectorAll('table').length > 0;
-    if(!hasTables){
-      failExit('This bookmark only works on a page with your course tables (like the Registration page).');
-      return;
+  var lines = [];
+  var codeRe = /^(ELECT\d|[A-Z]{2,6}[-\s]?\d{2,4}(?:-L)?)$/i;
+  var trs = doc.querySelectorAll('tr');
+  trs.forEach(function (tr) {
+    var anchor = tr.querySelector('a[name]');
+    if (anchor) {
+      var nm = anchor.getAttribute('name') || '';
+      var sm = nm.match(/Semester\s*-\s*\d+/i);
+      if (sm) { lines.push(sm[0]); return; }
+      if (/^Electives/i.test(nm)) { lines.push('Electives'); return; }
     }
-
-    var payload = {
-      version: 2,
-      timestamp: Date.now(),
-      sourceUrl: location.href,
-      profile: { name: null },
-      courseListText: '',
-      attendance: [],
-      transcript: [],
-      schedule: [],
-      midterms: [],
-      examSchedule: [],
-      transcriptGPA: null
-    };
-
-    /* === 1. PROFILE (current page) === */
-    setStatus('Reading your profile\u2026', 4);
-    try {
-      var loginInfo = document.querySelector('div.logininfo a, .logininfo a');
-      if(loginInfo){
-        payload.profile.name = (loginInfo.textContent || '').trim();
-      } else {
-        var anyLogin = document.querySelector('.logininfo');
-        if(anyLogin){
-          payload.profile.name = (anyLogin.textContent || '').trim().split('\\n')[0].trim();
-        }
-      }
-    } catch(e){}
-
-    /* === 2. COURSE LIST (current page tables) === */
-    setStatus('Reading your course list\u2026', 12);
-    try {
-      var tables = document.querySelectorAll('table');
-      var lines = [];
-      tables.forEach(function(table){
-        var rows = table.querySelectorAll(':scope > tbody > tr, :scope > tr');
-        if(rows.length === 0) return;
-        var firstText = (rows[0].innerText || rows[0].textContent || '').trim();
-        var semMatch = firstText.match(/^Semester\\s*-\\s*\\d+/i);
-        var elecMatch = firstText.match(/^Electives/i);
-        if(!semMatch && !elecMatch) return;
-        lines.push(semMatch ? semMatch[0] : 'Electives');
-        for(var i = 1; i < rows.length; i++){
-          var rowText = (rows[i].innerText || rows[i].textContent || '').trim();
-          if(!rowText) continue;
-          rowText = rowText.replace(/\\n\\t?(\\d+)\\t/g, '\\t$1\\t');
-          rowText = rowText.replace(/\\n([A-Z]{2,5}[-\\s]?\\d{2,4}(?:-L)?\\t)/g, '\\n$1');
-          var parts = rowText.split('\\n');
-          for(var j = 0; j < parts.length; j++){
-            var p = parts[j].trim();
-            if(p) lines.push(p);
-          }
-        }
-      });
-      payload.courseListText = lines.join('\\n');
-    } catch(e){}
-
-    /* === HELPER: fetch and parse a same-origin page === */
-    async function fetchDoc(path){
-      try {
-        var res = await fetch(path, { credentials: 'include', cache: 'no-store' });
-        if(!res.ok) return null;
-        var html = await res.text();
-        return new DOMParser().parseFromString(html, 'text/html');
-      } catch(e){ return null; }
+    /* only DIRECT <td> children so we never double-count nested tables */
+    var arr = [];
+    for (var k = 0; k < tr.children.length; k++) {
+      if (tr.children[k].tagName === 'TD') arr.push(T(tr.children[k]));
     }
-    function cellText(c){
-      return ((c.innerText || c.textContent || '') + '').replace(/\\s+/g,' ').trim();
+    if (arr.length < 5) return;
+    var ci = -1;
+    for (var j = 0; j < arr.length; j++) { if (codeRe.test(arr[j])) { ci = j; break; } }
+    if (ci === -1) return;
+    var code = arr[ci].toUpperCase();
+    var prereq = (arr[ci + 1] || '').trim();
+    if (prereq === '' || /^-+$/.test(prereq)) prereq = '-';
+    var credits = (arr[ci + 2] || '').trim();
+    var name = (arr[ci + 3] || '').trim();
+    var grade = (arr[ci + 4] || '').trim();
+    var rest = arr.slice(ci + 5).join('\t');
+    lines.push([code, prereq, credits, name, grade, rest].join('\t'));
+  });
+
+  return { profile: profile, courseListText: lines.join('\n') };
+}
+
+/* Schedule.php → [ {day,startTime,endTime,courseTitle,faculty,location,edpCode,courseCode,raw} ] */
+function _bm_scrapeSchedule(doc) {
+  var T = _bm_cellText;
+  var out = [];
+  doc.querySelectorAll('tr').forEach(function (tr) {
+    var dateCell = null, detCell = null;
+    for (var i = 0; i < tr.children.length; i++) {
+      var td = tr.children[i];
+      if (!td.tagName || td.tagName !== 'TD') continue;
+      if ((td.className || '').indexOf('dateStyle') !== -1) dateCell = td;
+      if ((td.className || '').indexOf('detailsStyle') !== -1) detCell = td;
     }
+    if (!dateCell || !detCell) return;
+    var day = '';
+    var ds = dateCell.querySelector('.dayStyle');
+    if (ds) day = T(ds);
+    var times = _bm_parseTimeRange(T(dateCell));
+    var raw = T(detCell);
+    function grab(re) { var m = raw.match(re); return m ? m[1].trim() : ''; }
+    out.push({
+      day: day,
+      startTime: times.startTime,
+      endTime: times.endTime,
+      courseTitle: grab(/Course Title\s*:\s*(.*?)\s*(?:Faculty\s*:|Location\s*:|EDP Code\s*:|Course Code\s*:|$)/i),
+      faculty: grab(/Faculty\s*:\s*(.*?)\s*(?:Location\s*:|EDP Code\s*:|Course Code\s*:|$)/i),
+      location: grab(/Location\s*:\s*(.*?)\s*(?:EDP Code\s*:|Course Code\s*:|$)/i),
+      edpCode: grab(/EDP Code\s*:\s*(\d+)/i),
+      courseCode: grab(/Course Code\s*:\s*([A-Z]{2,6}[-\s]?\d{2,4}(?:-L)?)/i),
+      raw: raw
+    });
+  });
+  return out;
+}
 
-    /* === 3. ATTENDANCE === */
-    setStatus('Fetching attendance records\u2026', 28);
-    try {
-      var doc = await fetchDoc('/sic/StudentAttendance.php');
-      if(doc){
-        var attRows = doc.querySelectorAll('table.attendance-table tr.attendanceRow');
-        attRows.forEach(function(r){
-          var cells = r.querySelectorAll('td');
-          if(cells.length >= 4){
-            var total = parseInt(cellText(cells[1]), 10) || 0;
-            var present = parseInt(cellText(cells[2]), 10) || 0;
-            var absent = parseInt(cellText(cells[3]), 10) || 0;
-            payload.attendance.push({
-              course: cellText(cells[0]),
-              totalSessions: total,
-              present: present,
-              absent: absent
-            });
-          }
-        });
+/* StudentAttendance.php → [ {course,totalSessions,present,absent} ] */
+function _bm_scrapeAttendance(doc) {
+  var T = _bm_cellText;
+  var out = [];
+  doc.querySelectorAll('table.attendance-table tr.attendanceRow').forEach(function (r) {
+    var c = r.querySelectorAll('td');
+    if (c.length < 4) return;
+    out.push({
+      course: T(c[0]).replace(/\s*\(\d+\)\s*$/, ''),
+      edpCode: (T(c[0]).match(/\((\d+)\)\s*$/) || [, ''])[1],
+      totalSessions: parseInt(T(c[1]), 10) || 0,
+      present: parseInt(T(c[2]), 10) || 0,
+      absent: parseInt(T(c[3]), 10) || 0
+    });
+  });
+  return out;
+}
+
+/* ExamResultMid.php → [ {cells:[...]} ] */
+function _bm_scrapeMidterms(doc) {
+  var T = _bm_cellText;
+  var out = [];
+  var tables = doc.querySelectorAll('table.tblAttendance');
+  if (!tables.length) tables = doc.querySelectorAll('table');
+  tables.forEach(function (tbl) {
+    tbl.querySelectorAll('tr').forEach(function (tr) {
+      if (tr.className && tr.className.indexOf('tableHeaderStyle') !== -1) return;
+      var arr = [];
+      tr.querySelectorAll('td').forEach(function (td) { arr.push(T(td)); });
+      var nonEmpty = arr.filter(function (x) { return x.length > 0; });
+      if (nonEmpty.length >= 2 && /[A-Za-z]/.test(arr[0]) && arr.slice(1).some(function (x) { return /^\d+(\.\d+)?$/.test(x); })) {
+        out.push({ cells: arr });
       }
-    } catch(e){}
+    });
+  });
+  return out;
+}
 
-    /* === 4. TRANSCRIPT === */
-    setStatus('Fetching transcript\u2026', 46);
-    try {
-      var doc = await fetchDoc('/sic/Transcript.php');
-      if(doc){
-        /* --- Primary: the known IULMS markup --- */
-        var trRows = doc.querySelectorAll('table.transcript-table tr.transcript-content');
-        trRows.forEach(function(r){
-          var cells = r.querySelectorAll('td');
-          if(cells.length >= 5){
-            payload.transcript.push({
-              code: cellText(cells[0]),
-              title: cellText(cells[1]),
-              credits: parseFloat(cellText(cells[2])) || 0,
-              grade: cellText(cells[3]),
-              points: parseFloat(cellText(cells[4])) || 0
-            });
-          }
-        });
-        /* --- Fallback: IULMS sometimes uses different class names. If nothing
-           was found, scan EVERY table and keep rows that look like a transcript
-           line (a course code + a recognizable grade). This is why transcript
-           import is now far more reliable. --- */
-        if(payload.transcript.length === 0){
-          var gradeRe = /^(A\\+?|A-|B\\+?|B-|C\\+?|C-|D\\+?|D-|F|W|I|NC|P)$/i;
-          var codeRe = /^[A-Z]{2,5}[-\\s]?\\d{2,4}(?:-L)?$/i;
-          var allTables = doc.querySelectorAll('table');
-          allTables.forEach(function(t){
-            var rows = t.querySelectorAll('tr');
-            rows.forEach(function(r){
-              var cells = r.querySelectorAll('td');
-              if(cells.length < 3) return;
-              var arr = [];
-              cells.forEach(function(c){ arr.push(cellText(c)); });
-              var ci = -1;
-              for(var i=0;i<arr.length;i++){ if(codeRe.test(arr[i])){ ci = i; break; } }
-              if(ci === -1) return;
-              var gi = -1;
-              for(var j=ci+1;j<arr.length;j++){ if(gradeRe.test(arr[j])){ gi = j; break; } }
-              if(gi === -1) return;
-              var credits = 0;
-              for(var k=ci+1;k<gi;k++){ var n = parseFloat(arr[k]); if(!isNaN(n) && n>=0 && n<=6){ credits = n; break; } }
-              var points = 0;
-              for(var m=gi+1;m<arr.length;m++){ var p = parseFloat(arr[m]); if(!isNaN(p)){ points = p; break; } }
-              var title = '';
-              for(var x=ci+1;x<gi;x++){ if(arr[x] && isNaN(parseFloat(arr[x])) && arr[x].length > title.length) title = arr[x]; }
-              payload.transcript.push({
-                code: arr[ci].toUpperCase(),
-                title: title || arr[ci+1] || '',
-                credits: credits,
-                grade: arr[gi].toUpperCase(),
-                points: points
-              });
-            });
-          });
-        }
-        var bodyText = doc.body.innerText || doc.body.textContent || '';
-        var gpaMatch = bodyText.match(/(?:CGPA|GPA)\\s*:?\\s*([0-9]\\.[0-9]+)/i);
-        if (gpaMatch) {
-          payload.transcriptGPA = parseFloat(gpaMatch[1]);
-        }
-      }
-    } catch(e){}
+/* examschedule.php → [ {cells:[...]} ]  (often "not available") */
+function _bm_scrapeExam(doc) {
+  var T = _bm_cellText;
+  var bodyText = (doc.body && (doc.body.innerText || doc.body.textContent) || '').toLowerCase();
+  if (bodyText.indexOf('not available') !== -1 || bodyText.indexOf('no exam') !== -1) return [];
+  var out = [];
+  doc.querySelectorAll('table').forEach(function (tbl) {
+    tbl.querySelectorAll('tr').forEach(function (tr) {
+      if (tr.className && tr.className.indexOf('tableHeaderStyle') !== -1) return;
+      var arr = [];
+      tr.querySelectorAll('td').forEach(function (td) { arr.push(T(td)); });
+      var nonEmpty = arr.filter(function (x) { return x.length > 0; });
+      if (nonEmpty.length >= 2) out.push({ cells: arr });
+    });
+  });
+  return out;
+}
 
-    /* === 5. SCHEDULE === */
-    setStatus('Fetching weekly schedule\u2026', 64);
-    try {
-      var doc = await fetchDoc('/sic/Schedule.php');
-      if(doc){
-        var dayCells = doc.querySelectorAll('span.dayStyle, td.dayStyle');
-        dayCells.forEach(function(daySpan){
-          var dayText = cellText(daySpan);
-          if(!dayText) return;
-          var row = daySpan.closest('tr');
-          if(!row) return;
-          var details = Array.prototype.slice.call(row.children).filter(function(el) { return el.tagName && el.tagName.toLowerCase() === 'td' && el.className.indexOf('detailsStyle') !== -1; });
-          if(details.length === 0){
-            details = Array.prototype.slice.call(row.children).filter(function(el) { return el.tagName && el.tagName.toLowerCase() === 'td'; });
-          }
-          details.forEach(function(td){
-            var raw = (td.innerText || td.textContent || '').trim();
-            if(!raw || raw === dayText) return;
-            payload.schedule.push({
-              day: dayText,
-              raw: raw
-            });
-          });
-        });
-        if(payload.schedule.length === 0){
-          var schedTables = doc.querySelectorAll('table');
-          schedTables.forEach(function(t){
-            var rows = t.querySelectorAll('tr');
-            rows.forEach(function(r){
-              var cells = r.querySelectorAll('td');
-              if(cells.length >= 2){
-                var first = cellText(cells[0]);
-                if(/^(mon|tue|wed|thu|fri|sat|sun)/i.test(first)){
-                  for(var k = 1; k < cells.length; k++){
-                    var raw = (cells[k].innerText || cells[k].textContent || '').trim();
-                    if(raw) payload.schedule.push({ day: first, raw: raw });
-                  }
-                }
-              }
-            });
-          });
-        }
-      }
-    } catch(e){}
+/* All helpers that must be available inside the bookmarklet runtime. */
+var _BM_HELPERS = [
+  _bm_cellText, _bm_pad, _bm_parseTimeRange,
+  _bm_scrapeRegistration, _bm_scrapeSchedule, _bm_scrapeAttendance,
+  _bm_scrapeMidterms, _bm_scrapeExam
+];
 
-    /* === 6. MIDTERM RESULTS === */
-    setStatus('Fetching midterm results\u2026', 80);
-    try {
-      var doc = await fetchDoc('/sic/ExamResultMid.php');
-      if(doc){
-        var midTables = doc.querySelectorAll('table.tblAttendance');
-        if(midTables.length === 0){
-          midTables = doc.querySelectorAll('table');
-        }
-        midTables.forEach(function(t){
-          var rows = t.querySelectorAll('tr');
-          rows.forEach(function(r){
-            if(r.classList && r.classList.contains('tableHeaderStyle')) return;
-            var cells = r.querySelectorAll('td');
-            if(cells.length === 0) return;
-            var cellArr = [];
-            cells.forEach(function(c){ cellArr.push(cellText(c)); });
-            var nonEmpty = cellArr.filter(function(x){ return x.length > 0; });
-            if(nonEmpty.length >= 2){
-              payload.midterms.push({ cells: cellArr });
-            }
-          });
-        });
-      }
-    } catch(e){}
+/* Build the actual javascript: bookmarklet source for a given target URL. */
+function buildBookmarkletSource(target) {
+  var helpers = _BM_HELPERS.map(function (f) { return f.toString(); }).join('\n');
+  return '(async function(){\n'
+    + 'var TARGET=' + JSON.stringify(target) + ';\n'
+    + helpers + '\n'
+    + 'var overlay=null;\n'
+    + 'function showOverlay(){overlay=document.createElement("div");overlay.id="iusp-bm-overlay";overlay.style.cssText="position:fixed;inset:0;z-index:2147483647;background:rgba(15,23,42,0.55);display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;";overlay.innerHTML="<div style=\\"background:#fff;padding:28px 32px;border-radius:16px;box-shadow:0 24px 64px rgba(0,0,0,0.3);text-align:center;min-width:320px;max-width:90%;border:1px solid #e5e7eb;\\"><div style=\\"font-size:11px;font-weight:700;color:#047857;letter-spacing:0.12em;margin-bottom:6px;font-family:ui-monospace,monospace;\\">IUSEMPLANNER.AI</div><div style=\\"font-size:18px;font-weight:700;color:#0a0a0a;margin-bottom:6px;\\">Importing your academic profile</div><div id=\\"iusp-bm-status\\" style=\\"font-size:13px;color:#525252;margin-bottom:18px;min-height:18px;\\">Starting...</div><div style=\\"width:100%;height:6px;background:#f1f5f9;border-radius:999px;overflow:hidden;\\"><div id=\\"iusp-bm-bar\\" style=\\"width:0%;height:100%;background:linear-gradient(90deg,#059669,#34d399);border-radius:999px;transition:width 300ms ease;\\"></div></div><div style=\\"margin-top:14px;font-size:11px;color:#9ca3af;font-family:ui-monospace,monospace;\\">fetching silently - do not close this tab</div></div>";document.body.appendChild(overlay);}\n'
+    + 'function setStatus(t,p){var s=document.getElementById("iusp-bm-status"),b=document.getElementById("iusp-bm-bar");if(s)s.textContent=t;if(b)b.style.width=Math.min(100,Math.max(0,p))+"%";}\n'
+    + 'function removeOverlay(){if(overlay&&overlay.parentNode)overlay.parentNode.removeChild(overlay);}\n'
+    + 'function failExit(m){removeOverlay();alert("IUSemPlanner\\n\\n"+m);}\n'
+    + 'async function fetchDoc(path){try{var r=await fetch(path,{credentials:"include",cache:"no-store"});if(!r.ok)return null;var h=await r.text();return new DOMParser().parseFromString(h,"text/html");}catch(e){return null;}}\n'
+    + 'try{\n'
+    + 'showOverlay();\n'
+    + 'var payload={version:2,timestamp:Date.now(),sourceUrl:location.href,profile:{name:null},courseListText:"",attendance:[],transcript:[],transcriptGPA:null,schedule:[],scheduleStructured:true,midterms:[],examSchedule:[]};\n'
+    /* courses + profile */
+    + 'setStatus("Reading your curriculum & courses...",12);\n'
+    + 'var regDoc=await fetchDoc("/registration/Registration_FEST_student_EarlyRegistrationBeta.php");\n'
+    + 'if(regDoc){var rr=_bm_scrapeRegistration(regDoc);payload.profile=rr.profile;payload.courseListText=rr.courseListText;}\n'
+    + 'if(!payload.courseListText){var rr2=_bm_scrapeRegistration(document);if(rr2.courseListText){payload.courseListText=rr2.courseListText;if(!payload.profile||!payload.profile.name)payload.profile=rr2.profile;}}\n'
+    /* transcript via data service */
+    + 'setStatus("Fetching official transcript & CGPA...",34);\n'
+    + 'try{var degreeId=(payload.profile&&payload.profile.program)||"BS(SE)";var tdoc=await fetchDoc("/sic/Transcript.php");if(tdoc){var opt=tdoc.querySelector("#cmbDegree option");if(opt&&opt.value)degreeId=opt.value;}\n'
+    + 'var tr=await fetch("/sic/SICDataService.php",{method:"POST",credentials:"include",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8","X-Requested-With":"XMLHttpRequest"},body:"action=GetTranscript&degreeId="+encodeURIComponent(degreeId)});\n'
+    + 'if(tr.ok){var data=null;try{data=await tr.json();}catch(e){try{data=JSON.parse(await tr.text());}catch(e2){}}\n'
+    + 'if(data&&data.attemptedCourses){data.attemptedCourses.forEach(function(c){payload.transcript.push({code:(c.crsCode||"").toUpperCase(),title:c.crsTitle||"",credits:parseFloat(c.crsHours)||0,grade:(c.crsGrade||"").toUpperCase(),points:parseFloat(c.gpa)||0,semNo:c.semNo});});if(data.cgpa!=null)payload.transcriptGPA=parseFloat(data.cgpa);}}}catch(e){}\n'
+    /* attendance */
+    + 'setStatus("Fetching attendance...",54);\n'
+    + 'var aDoc=await fetchDoc("/sic/StudentAttendance.php");if(aDoc)payload.attendance=_bm_scrapeAttendance(aDoc);\n'
+    /* schedule */
+    + 'setStatus("Fetching weekly schedule...",68);\n'
+    + 'var sDoc=await fetchDoc("/sic/Schedule.php");if(sDoc)payload.schedule=_bm_scrapeSchedule(sDoc);\n'
+    /* midterms */
+    + 'setStatus("Fetching midterm results...",82);\n'
+    + 'var mDoc=await fetchDoc("/sic/ExamResultMid.php");if(mDoc)payload.midterms=_bm_scrapeMidterms(mDoc);\n'
+    /* exam schedule */
+    + 'setStatus("Checking exam schedule...",92);\n'
+    + 'var eDoc=await fetchDoc("/sic/examschedule.php");if(eDoc)payload.examSchedule=_bm_scrapeExam(eDoc);\n'
+    /* encode + redirect */
+    + 'setStatus("Done - redirecting...",100);\n'
+    + 'if(!payload.courseListText&&payload.transcript.length===0){failExit("Could not read your data. Please make sure you are logged in to IULMS, then click the bookmark again.");return;}\n'
+    + 'var json=JSON.stringify(payload);var encoded=btoa(unescape(encodeURIComponent(json)));var url=TARGET+"#import="+encoded;\n'
+    + 'setTimeout(function(){removeOverlay();var w=window.open(url,"_blank");if(!w||w.closed||typeof w.closed==="undefined"){window.location.href=url;}},300);\n'
+    + '}catch(err){removeOverlay();alert("IUSemPlanner error:\\n"+(err&&err.message?err.message:err)+"\\n\\nMake sure you are logged in to IULMS and try again.");}\n'
+    + '})();';
+}
 
-    /* === 7. EXAM SCHEDULE === */
-    setStatus('Checking exam schedule\u2026', 92);
-    try {
-      var doc = await fetchDoc('/sic/examschedule.php');
-      if(doc){
-        var bodyText = (doc.body && (doc.body.innerText || doc.body.textContent) || '').toLowerCase();
-        var notAvail = bodyText.indexOf('not available') !== -1 || bodyText.indexOf('no exam') !== -1;
-        if(!notAvail){
-          var examTables = doc.querySelectorAll('table');
-          examTables.forEach(function(t){
-            var rows = t.querySelectorAll('tr');
-            rows.forEach(function(r){
-              if(r.classList && r.classList.contains('tableHeaderStyle')) return;
-              var cells = r.querySelectorAll('td');
-              if(cells.length >= 2){
-                var cellArr = [];
-                cells.forEach(function(c){ cellArr.push(cellText(c)); });
-                var nonEmpty = cellArr.filter(function(x){ return x.length > 0; });
-                if(nonEmpty.length >= 2){
-                  payload.examSchedule.push({ cells: cellArr });
-                }
-              }
-            });
-          });
-        }
-      }
-    } catch(e){
-    }
+var BOOKMARKLET_TARGET = (typeof window !== 'undefined' && window.location)
+  ? (window.location.origin + window.location.pathname)
+  : 'https://ctrlaltimran.com/IUSemPlanner/';
 
-    /* === ENCODE AND REDIRECT === */
-    setStatus('Encoding and redirecting\u2026', 100);
-
-    if(!payload.courseListText && payload.transcript.length === 0){
-      failExit('Could not find any course data on this page. Make sure your course list and grades are visible before clicking the bookmark.');
-      return;
-    }
-
-    var json = JSON.stringify(payload);
-    var encoded = btoa(unescape(encodeURIComponent(json)));
-    var url = TARGET + '#import=' + encoded;
-
-    setTimeout(function(){
-      removeOverlay();
-      var win = window.open(url, '_blank');
-      if(!win || win.closed || typeof win.closed === 'undefined'){
-        if(confirm('IUSemPlanner: Pop-up blocked.\\n\\nRedirect this tab instead?')){
-          window.location.href = url;
-        }
-      }
-    }, 350);
-
-  } catch(err){
-    removeOverlay();
-    alert('IUSemPlanner error:\\n' + (err && err.message ? err.message : err) + '\\n\\nMake sure you are on the Registration page.');
-  }
-})();`;
+var BOOKMARKLET_SOURCE = buildBookmarkletSource(BOOKMARKLET_TARGET);
 
 function buildBookmarkletURL() {
-  let code = BOOKMARKLET_SOURCE.trim();
-  return 'javascript:' + encodeURIComponent(code);
+  return 'javascript:' + encodeURIComponent(BOOKMARKLET_SOURCE.trim());
 }
 
 function isMobileDevice() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     || (typeof window !== 'undefined' && window.innerWidth < 768);
+}
+
+/* Allow Node-based unit testing of the scraper helpers. */
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    _bm_cellText, _bm_pad, _bm_parseTimeRange,
+    _bm_scrapeRegistration, _bm_scrapeSchedule, _bm_scrapeAttendance,
+    _bm_scrapeMidterms, _bm_scrapeExam, buildBookmarkletSource
+  };
 }

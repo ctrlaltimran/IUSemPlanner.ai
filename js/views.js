@@ -19,6 +19,7 @@ const HOME_GUIDES = [
 /* Sticky top header shown on the home / landing page. */
 function renderHomeHeader() {
   const hasUser = state && state.account;
+  const hasGuest = state && state.user !== null && !state.account;
   return `
     <header class="home-header">
       <div class="home-header-inner">
@@ -35,6 +36,11 @@ function renderHomeHeader() {
               ${svgWrap(ICON.user, 12)}
               <span class="acct-email">${esc(state.account.email)}</span>
             </span>
+            <a href="javascript:void(0)" class="home-nav-cta" data-tab="dashboard">Dashboard</a>
+            <a href="javascript:void(0)" class="home-nav-link" data-action="logout" style="display:inline-flex;align-items:center;gap:4px;">${svgWrap(ICON.logout, 13)} Sign out</a>
+          ` : hasGuest ? `
+            <a href="javascript:void(0)" class="home-nav-cta" data-tab="dashboard">Dashboard</a>
+            <a href="javascript:void(0)" class="home-nav-link" data-action="logout" style="display:inline-flex;align-items:center;gap:4px;">${svgWrap(ICON.logout, 13)} Exit</a>
           ` : `
             <a href="javascript:void(0)" class="home-nav-link" data-action="open-auth" data-auth-mode="signin" style="display: inline-flex; align-items: center; gap: 4px;">${svgWrap(ICON.user, 14)} Sign in</a>
             <a href="javascript:void(0)" class="home-nav-cta" data-action="open-auth" data-auth-mode="signup">Sign up</a>
@@ -114,7 +120,7 @@ function renderLogin() {
       <div class="login-wrap">
 
         <div style="text-align:center;margin-bottom:16px;">
-          <div class="login-pill">v2.1 · predictive dashboard · accounts + cloud sync</div>
+          <div class="login-pill">v2.2 · AI for everyone · one-click IULMS import</div>
         </div>
 
         <div class="hero-split">
@@ -182,39 +188,27 @@ function renderLogin() {
           </div>
         </div>
 
-        <div class="login-cards">
-          <button class="plan-card" data-action="open-auth" data-auth-mode="signup">
-            <div class="plan-head">
-              <span class="plan-tag">Free Plan</span>
-              ${svgWrap(ICON.code, 20)}
+        <div class="ai-hero" id="ai-section">
+          <div class="ai-hero-glow"></div>
+          <div class="ai-hero-inner">
+            <div class="ai-hero-badge">${svgWrap(ICON.spark, 12)} Built-in AI · free for every student</div>
+            <h2 class="ai-hero-title">Software with an AI that actually helps you</h2>
+            <p class="ai-hero-sub">
+              IUSemPlanner is powered by an AI that understands <b>your</b> data — your transcript,
+              courses, attendance and weekly schedule. Ask it anything and get instant, personal
+              guidance: what to register next, how to lift your CGPA, and where your risks are.
+            </p>
+            <div class="ai-hero-feats">
+              <div class="ai-feat">${svgWrap(ICON.brain, 18)}<div><b>Data-aware chat</b><span>Answers grounded in your real IULMS profile.</span></div></div>
+              <div class="ai-feat">${svgWrap(ICON.trophy, 18)}<div><b>CGPA forecasting</b><span>See your predicted standing before results drop.</span></div></div>
+              <div class="ai-feat">${svgWrap(ICON.target, 18)}<div><b>Smart planning</b><span>What to take, what to avoid — clash-free.</span></div></div>
+              <div class="ai-feat">${svgWrap(ICON.image, 18)}<div><b>Vision upload</b><span>Drop a screenshot and the AI reads it for you.</span></div></div>
             </div>
-            <div class="plan-name">Free Student</div>
-            <p class="plan-desc">Full planning tools — import, progress, GPA, course catalog, clash detection, smart recommendations.</p>
-            <ul class="plan-features">
-              <li>${svgWrap(`<span class="check">${ICON.check}</span>`, 14)}iulms text & file upload</li>
-              <li>${svgWrap(`<span class="check">${ICON.check}</span>`, 14)}progress & gpa tracker</li>
-              <li>${svgWrap(`<span class="check">${ICON.check}</span>`, 14)}course planner & clash detection</li>
-              <li>${svgWrap(`<span class="check">${ICON.check}</span>`, 14)}smart rule-based tips</li>
-              <li class="locked">${svgWrap(ICON.lock, 12)}image upload & ai insights</li>
-            </ul>
-            <div class="plan-cta">continue as free ${svgWrap(ICON.arrow, 14)}</div>
-          </button>
-          <button class="plan-card pro" data-action="open-auth" data-auth-mode="signup">
-            <div class="plan-head">
-              <span class="plan-tag">Pro Plan</span>
-              <span style="width:20px;height:20px;color:#60a5fa">${ICON.crown}</span>
+            <div class="ai-hero-cta">
+              <button class="btn ai-hero-btn" data-action="open-auth" data-auth-mode="signup">${svgWrap(ICON.spark, 16)} Get started — it's free</button>
+              <span class="ai-hero-note">Every feature unlocked for everyone. No paid plans, no limits.</span>
             </div>
-            <div class="plan-name">Pro Student</div>
-            <p class="plan-desc">Everything in Free, plus image upload (vision AI), AI summary, recommendations, and bring-your-own API key.</p>
-            <ul class="plan-features">
-              <li>${svgWrap(`<span class="check">${ICON.check}</span>`, 14)}all free features</li>
-              <li><span class="spark" style="width:14px;height:14px;display:inline-flex;color:#60a5fa">${ICON.spark}</span>image upload (vision)</li>
-              <li><span class="spark" style="width:14px;height:14px;display:inline-flex;color:#60a5fa">${ICON.spark}</span>ai progress summary</li>
-              <li><span class="spark" style="width:14px;height:14px;display:inline-flex;color:#60a5fa">${ICON.spark}</span>smart recommendations</li>
-              <li><span class="spark" style="width:14px;height:14px;display:inline-flex;color:#60a5fa">${ICON.spark}</span>your own api key</li>
-            </ul>
-            <div class="plan-cta">continue as pro ${svgWrap(ICON.arrow, 14)}</div>
-          </button>
+          </div>
         </div>
 
         <div class="features-row" id="features">
@@ -235,8 +229,8 @@ function renderLogin() {
           </div>
           <div class="feature-card">
             <div class="feature-icon">${ICON.brain}</div>
-            <div class="feature-title">Smart recommendations</div>
-            <div class="feature-desc">Rule-based tips for all; AI-powered personalized advice for Pro.</div>
+            <div class="feature-title">AI recommendations</div>
+            <div class="feature-desc">Personalized, AI-powered advice on your courses and CGPA — for everyone.</div>
           </div>
         </div>
 
@@ -340,21 +334,17 @@ function renderApp() {
   return `
     <header class="header">
       <div class="header-inner">
-        <div class="brand">
+        <a href="javascript:void(0)" class="brand" data-tab="home" style="text-decoration: none;">
           <img src="./media/main svg now.jpg" class="brand-logo" alt="IU">
-          <span class="brand-name">IUSemPlanner.ai</span>
+          <span class="brand-name" style="color: #111827;">IUSemPlanner.ai</span>
           ${firstName
       ? `<span class="brand-meta">${svgWrap(ICON.user, 12)}${esc(firstName)}</span>`
       : `<span class="brand-meta">${svgWrap(ICON.hash, 12)}${state.courses.length} courses</span>`}
-        </div>
+        </a>
         <div class="header-right">
           ${state.account ? `<span class="acct-pill" title="${esc(state.account.email)}">${svgWrap(ICON.user, 12)}<span class="acct-email">${esc(state.account.email)}</span><span id="cloud-status" class="cloud-status"></span></span>` : ''}
-          <span class="plan-pill ${isPro ? 'pro' : 'free'}">
-            ${svgWrap(isPro ? ICON.crown : ICON.code, 14)}
-            ${isPro ? 'Pro' : 'Free'}
-          </span>
           <button class="icon-btn-hdr" data-action="open-settings" title="Settings">${svgWrap(ICON.settings)}</button>
-          <button class="icon-btn-hdr" data-action="logout" title="${state.account ? 'Sign out' : 'Log out'}">${svgWrap(ICON.logout)}</button>
+          <button class="icon-btn-hdr" data-action="logout" title="${state.account ? 'Sign out' : 'Exit to home'}">${svgWrap(ICON.logout)}</button>
         </div>
       </div>
     </header>
@@ -367,7 +357,7 @@ function renderApp() {
         ${tabBtn('library', 'Courses', ICON.book)}
         ${tabBtn('courses', 'Catalog', ICON.layers)}
         ${tabBtn('planner', 'Planner', ICON.target, false, plannedCount)}
-        ${tabBtn('ai', 'AI Insights', ICON.brain, true)}
+        ${tabBtn('ai', 'AI Insights', ICON.brain, false)}
       </div>
     </nav>
     ${state.importBanner ? `
@@ -1346,17 +1336,10 @@ function renderSettingsModal() {
   const hasData = state.courses.length > 0;
   const s = state.aiSettings;
 
-  const proSection = !isPro ? '' : `
-    <div class="pay-card">
-      <div class="pay-card-title">${svgWrap(ICON.crown, 14)} Managed AI access</div>
-      <div class="pay-card-sub">No setup, no API key required. Coming soon.</div>
-      <div class="pay-card-price">100 Rs <span class="unit">/ month</span></div>
-      <button class="btn btn-accent" data-action="show-payment" style="position:relative">Pay 100 Rs</button>
-    </div>
-
+  const aiSection = `
     <div class="settings-section">
-      <div class="settings-section-title">${svgWrap(ICON.key, 14)} Use your own API key <span class="cost-pill">FREE</span></div>
-      <div class="settings-section-sub">Works with Claude or OpenAI. Your key never leaves this browser.</div>
+      <div class="settings-section-title">${svgWrap(ICON.key, 14)} Use your own API key <span class="cost-pill">OPTIONAL</span></div>
+      <div class="settings-section-sub">AI works out of the box. To use your own quota, add a Claude or OpenAI key — it never leaves this browser.</div>
       <div class="settings-row">
         <label>provider</label>
         <select class="field" data-setting="provider">
@@ -1388,11 +1371,12 @@ function renderSettingsModal() {
         <div class="modal-body">
           <div class="note">
             <div class="note-tag">// account</div>
-            <p>Plan: <strong>${isPro ? 'Pro' : 'Free'}</strong></p>
-            <p style="margin-top:4px">Courses: <strong>${state.courses.length}</strong> · Planned: <strong>${state.courses.filter(c => c.planned).length}</strong></p>
+            <p>Courses: <strong>${state.courses.length}</strong> · Planned: <strong>${state.courses.filter(c => c.planned).length}</strong></p>
+            ${state.account ? `<p style="margin-top:4px">Email: <strong>${esc(state.account.email)}</strong></p>` : '<p style="margin-top:4px" class="muted">Guest mode — data saved in this browser.</p>'}
+            <button class="btn btn-secondary btn-sm" data-action="logout" style="margin-top:10px">${svgWrap(ICON.logout, 12)} ${state.account ? 'Sign out' : 'Exit to home'}</button>
           </div>
 
-          ${proSection}
+          ${aiSection}
 
           <div class="settings-section">
             <div class="settings-section-title">Data</div>

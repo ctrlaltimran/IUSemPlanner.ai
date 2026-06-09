@@ -51,6 +51,8 @@ try {
 } catch (e) { }
 
 const state = { ...defaultState, ...savedState };
+// Everyone now gets all features — normalize any old 'free' saved plan to 'pro'.
+if (state.user) state.user.plan = 'pro';
 // Reset UI-only states on reload so modals don't get stuck open
 state.modal = null;
 state.uploadProcessing = false;
@@ -155,7 +157,7 @@ function fmtDur(mins) {
 
 function render() {
   saveLocal();
-  const onHome = state.user === null;
+  const onHome = state.user === null || state.tab === 'home';
   $('app').innerHTML = onHome ? renderLogin() : renderApp();
   document.body.classList.toggle('view-home', onHome);
   document.body.classList.toggle('view-app', !onHome);
@@ -245,7 +247,7 @@ async function handleAuthAction(action) {
   }
   if (action === 'guest') {
     /* Continue without an account — local only (old behaviour). */
-    state.user = { plan: 'free' };
+    state.user = { plan: 'pro' };
     state.modal = null;
     if (_pendingImport) applyPendingImport();
     state.tab = (state.courses.length || state.transcript.length) ? 'dashboard' : 'progress';
@@ -347,7 +349,7 @@ document.addEventListener('click', (e) => {
   const loginBtn = e.target.closest('[data-login]');
   if (loginBtn) {
     /* Guest entry (no account). Keeps the old "pick a plan" flow working. */
-    state.user = { plan: loginBtn.dataset.login };
+    state.user = { plan: 'pro' };
     state.modal = null;
     if (_pendingImport) applyPendingImport();
     state.tab = (state.courses.length || state.transcript.length) ? 'dashboard' : 'progress';
@@ -358,7 +360,7 @@ document.addEventListener('click', (e) => {
 
   const loginAndBtn = e.target.closest('[data-login-and]');
   if (loginAndBtn) {
-    state.user = { plan: 'free' };
+    state.user = { plan: 'pro' };
     state.modal = null;
 
     state.tab = 'progress';
@@ -424,6 +426,7 @@ document.addEventListener('click', (e) => {
       if (state.account && window.IUSPAuth) { window.IUSPAuth.authSignOut(); }
       state.account = null;
       state.user = null;
+      state.modal = null;
       state.tab = 'dashboard';
       state.ai = { summary: null, recommendations: null, loadingSummary: false, loadingRecs: false, errorSummary: null, errorRecs: null };
       state.aiChat = { messages: [], loading: false, error: null };
@@ -798,7 +801,7 @@ function applyPendingImport() {
    Loads cloud data, then reconciles with any fresh import or local data. */
 async function enterApp(account) {
   state.account = { id: account.id, email: account.email || '' };
-  if (!state.user) state.user = { plan: 'free' };
+  if (!state.user) state.user = { plan: 'pro' };
   state.authError = null;
   state.modal = null;
 
@@ -831,7 +834,7 @@ async function initAuth() {
        bookmark import logs you straight in locally. */
     if (_pendingImport) {
       applyPendingImport();
-      state.user = { plan: 'free' };
+      state.user = { plan: 'pro' };
       state.tab = 'dashboard';
     }
     render();

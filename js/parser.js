@@ -93,6 +93,7 @@ function parseIULMS(text) {
     else if (line.includes('Pre Requisite not cleared')) status = 'locked';
     else if (line.includes('Refer below for Electives')) status = 'elective';
     else if (line.includes('Course not Offered')) status = 'notOffered';
+    else if (line.includes('To be taken')) status = 'available';
     else continue;
 
     let tokens = line.split('\t').map(t => t.trim()).filter(t => t !== '');
@@ -292,7 +293,48 @@ function parseIULMSBookmarkData(payload) {
 function parseBookmarkPayloadV2(p) {
   const courses = p.courseListText ? parseIULMS(p.courseListText) : [];
 
-  const scheduleRaw = (p.schedule || [])
+  /* v2.2: the bookmarklet now sends fully-structured schedule entries
+     (day, startTime, endTime, courseTitle, faculty, location, edpCode,
+     courseCode). Use them directly. Older payloads only had {day, raw}, so
+     fall back to the heuristic extractor for those. */
+  const isStructured = p.scheduleStructured
+    || (p.schedule || []).some(s => s && (s.courseTitle !== undefined || s.startTime !== undefined || s.courseCode !== undefined));
+
+  let schedule;
+  if (isStructured) {
+    schedule = (p.schedule || [])
+      .map(s => ({
+        day: normalizeDay(s.day),
+        rawDay: s.day || '',
+        courseTitle: s.courseTitle || '',
+        faculty: s.faculty || '',
+        location: s.location || '',
+        edpCode: s.edpCode || '',
+        courseCode: s.courseCode || '',
+        startTime: s.startTime || '',
+        endTime: s.endTime || '',
+        raw: s.raw || '',
+      }))
+      .filter(s => s.day && (s.courseTitle || s.startTime || s.edpCode));
+  } else {
+    schedule = parseHeuristicSchedule(p.schedule || []);
+  }
+
+  return {
+    courses,
+    profile: p.profile || null,
+    transcript: p.transcript || [],
+    transcriptGPA: p.transcriptGPA || null,
+    attendance: p.attendance || [],
+    schedule,
+    midterms: parseMidterms(p.midterms || []),
+    examSchedule: parseExamSchedule(p.examSchedule || []),
+  };
+}
+
+/* Legacy heuristic schedule parser (for v2.1 payloads that only had raw text). */
+function parseHeuristicSchedule(rawSchedule) {
+  const scheduleRaw = (rawSchedule || [])
     .filter(s => s.raw && s.day && normalizeDay(s.raw.trim()) !== normalizeDay(s.day))
     .map(s => ({
       day: normalizeDay(s.day),
@@ -301,10 +343,8 @@ function parseBookmarkPayloadV2(p) {
       ...extractScheduleFields(s.raw),
     })).filter(s => s.day && (s.courseTitle || s.edpCode || s.startTime));
 
-  // Merge fragmented schedule blocks
   const schedule = [];
   let currentBlock = null;
-
   for (const s of scheduleRaw) {
     if (!currentBlock || currentBlock.day !== s.day) {
       if (currentBlock) schedule.push(currentBlock);
@@ -312,7 +352,6 @@ function parseBookmarkPayloadV2(p) {
     } else {
       const isNewCourse = s.courseTitle && currentBlock.courseTitle && s.courseTitle !== currentBlock.courseTitle;
       const isNewTime = s.startTime && currentBlock.startTime && s.startTime !== currentBlock.startTime;
-      
       if (isNewCourse || isNewTime) {
         schedule.push(currentBlock);
         currentBlock = { ...s };
@@ -328,17 +367,7 @@ function parseBookmarkPayloadV2(p) {
     }
   }
   if (currentBlock) schedule.push(currentBlock);
-
-  return {
-    courses,
-    profile: p.profile || null,
-    transcript: p.transcript || [],
-    transcriptGPA: p.transcriptGPA || null,
-    attendance: p.attendance || [],
-    schedule,
-    midterms: parseMidterms(p.midterms || []),
-    examSchedule: parseExamSchedule(p.examSchedule || []),
-  };
+  return schedule;
 }
 
 /* Normalize a day name like "Monday" -> "mon". */
