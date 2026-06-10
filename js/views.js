@@ -40,14 +40,14 @@ function renderHomeHeader() {
               <span class="acct-email">${esc(state.account.email)}</span>
             </span>
             <a href="javascript:void(0)" class="home-nav-cta" data-tab="dashboard">Dashboard</a>
-            <a href="javascript:void(0)" class="home-nav-link" data-action="logout" style="display:inline-flex;align-items:center;gap:4px;">${svgWrap(ICON.logout, 13)} Logout</a>
+            <a href="javascript:void(0)" class="home-nav-link" data-action="logout" style="display:inline-flex;align-items:center;gap:4px;">${svgWrap(ICON.logout, 13)} <span class="logout-text">Logout</span></a>
           ` : hasGuest ? `
             <span class="acct-pill" title="Guest Mode" style="margin-left: 6px;">
               ${svgWrap(ICON.user, 12)}
               <span class="acct-email">Guest Mode</span>
             </span>
             <a href="javascript:void(0)" class="home-nav-cta" data-tab="dashboard">Dashboard</a>
-            <a href="javascript:void(0)" class="home-nav-link" data-action="logout" style="display:inline-flex;align-items:center;gap:4px;">${svgWrap(ICON.logout, 13)} Logout</a>
+            <a href="javascript:void(0)" class="home-nav-link" data-action="logout" style="display:inline-flex;align-items:center;gap:4px;">${svgWrap(ICON.logout, 13)} <span class="logout-text">Logout</span></a>
           ` : `
             <a href="javascript:void(0)" class="home-nav-link" data-action="open-auth" data-auth-mode="signin" style="display: inline-flex; align-items: center; gap: 4px;">${svgWrap(ICON.user, 14)} Sign in</a>
             <a href="javascript:void(0)" class="home-nav-cta" data-action="open-auth" data-auth-mode="signup">Sign up</a>
@@ -225,7 +225,7 @@ function renderLogin() {
             <div class="ai-hero-cta">
               ${(state && state.user !== null) ? `
                 <button class="btn ai-hero-btn" data-tab="dashboard">${svgWrap(ICON.chart, 16)} Go to Dashboard</button>
-                <button class="btn btn-secondary" data-action="logout" style="margin-left: 12px; display: inline-flex; align-items: center; gap: 6px;">${svgWrap(ICON.logout, 16)} Logout</button>
+                <button class="btn btn-secondary" data-action="logout" style="margin-left: 12px; display: inline-flex; align-items: center; gap: 6px;">${svgWrap(ICON.logout, 16)} <span class="logout-text">Logout</span></button>
               ` : `
                 <button class="btn ai-hero-btn" data-action="open-auth" data-auth-mode="signup">${svgWrap(ICON.spark, 16)} Get started — it's free</button>
               `}
@@ -355,8 +355,12 @@ function renderApp() {
     || (state.currentSchedule && state.currentSchedule.length > 0);
 
   return `
-    <header class="header">
+    <header class="header ${state.tab === 'dashboard' ? 'dashboard-header' : ''}">
       <div class="header-inner">
+        <button class="icon-btn-hdr header-home-btn mobile-only" data-tab="home" title="Back to home" style="gap: 6px;">
+          ${svgWrap(ICON.back)}
+          <span style="font-size: 13px; font-weight: 500;">Home</span>
+        </button>
         <a href="javascript:void(0)" class="brand" data-tab="home" style="text-decoration: none; display: inline-flex; align-items: center;">
           <img src="./media/main svg now 2.png" class="brand-logo" alt="IU">
           <span class="brand-name" style="color: #111827; position: relative; display: inline-block; padding-right: 18px; line-height: 1;">
@@ -373,9 +377,15 @@ function renderApp() {
             <span class="acct-email">${state.account ? esc(state.account.email) : 'Guest Mode'}</span>
             <span id="cloud-status" class="cloud-status"></span>
           </span>
-          <button class="icon-btn-hdr" data-tab="home" title="Back to home" style="gap: 6px;">${svgWrap(ICON.back)}<span style="font-size: 13px; font-weight: 500;">Home</span></button>
+          <button class="icon-btn-hdr header-home-btn desktop-only" data-tab="home" title="Back to home" style="gap: 6px;">
+            ${svgWrap(ICON.back)}
+            <span style="font-size: 13px; font-weight: 500;">Home</span>
+          </button>
           <button class="icon-btn-hdr" data-action="open-settings" title="Settings">${svgWrap(ICON.settings)}</button>
-          <button class="icon-btn-hdr" data-action="logout" title="Logout" style="gap: 6px;">${svgWrap(ICON.logout)}<span style="font-size: 13px; font-weight: 500;">Logout</span></button>
+          <button class="icon-btn-hdr header-logout-btn" data-action="logout" title="Logout" style="gap: 6px;">
+            ${svgWrap(ICON.logout)}
+            <span class="logout-text" style="font-size: 13px; font-weight: 500;">Logout</span>
+          </button>
         </div>
       </div>
     </header>

@@ -1381,8 +1381,50 @@ body.view-home #site-footer {
   .ai-hero-note { text-align: center; width: 100%; }
 }
 
+/* Base styles for header home buttons */
+.header-home-btn.mobile-only {
+  display: none !important;
+}
+
 /* Mobile responsiveness fixes for header and brand */
 @media (max-width: 640px) {
+  /* Mobile dashboard layout overrides */
+  .dashboard-header .header-home-btn.desktop-only {
+    display: none !important;
+  }
+  .dashboard-header .header-home-btn.mobile-only {
+    display: inline-flex !important;
+  }
+  .dashboard-header .header-inner {
+    display: grid !important;
+    grid-template-columns: 1fr auto 1fr !important;
+    justify-content: stretch !important;
+    align-items: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    gap: 8px !important;
+  }
+  .dashboard-header .brand {
+    grid-column: 2 !important;
+    justify-self: center !important;
+    margin: 0 !important;
+    display: inline-flex !important;
+  }
+  .dashboard-header .header-home-btn.mobile-only {
+    grid-column: 1 !important;
+    justify-self: start !important;
+  }
+  .dashboard-header .header-right {
+    grid-column: 3 !important;
+    justify-self: end !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+  .logout-text {
+    display: none !important;
+  }
+
   .home-brand,
   .home-nav,
   .home-nav-link,
