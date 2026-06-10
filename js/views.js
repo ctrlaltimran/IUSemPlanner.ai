@@ -23,9 +23,12 @@ function renderHomeHeader() {
   return `
     <header class="home-header">
       <div class="home-header-inner">
-        <a href="#top" class="home-brand">
-          <img src="./media/main svg now.jpg" class="home-brand-logo" alt="IU">
-          <span class="home-brand-name">IUSemPlanner<span class="home-brand-dot">.ai</span></span>
+        <a href="#top" class="home-brand" style="display: inline-flex; align-items: center;">
+          <img src="./media/main svg now 2.png" class="home-brand-logo" alt="IU">
+          <span class="home-brand-name" style="position: relative; display: inline-block; padding-right: 18px; line-height: 1;">
+            IUSemPlanner
+            <span class="brand-ai-badge" style="font-size: 8px; font-weight: 800; font-family: var(--font-mono); color: #fff; background: var(--accent); padding: 1px 4px; border-radius: 999px; position: absolute; top: -6px; right: 0; line-height: 1; letter-spacing: 0.5px;">AI</span>
+          </span>
         </a>
         <nav class="home-nav">
           <a href="#features" class="home-nav-link">Features</a>
@@ -37,10 +40,14 @@ function renderHomeHeader() {
               <span class="acct-email">${esc(state.account.email)}</span>
             </span>
             <a href="javascript:void(0)" class="home-nav-cta" data-tab="dashboard">Dashboard</a>
-            <a href="javascript:void(0)" class="home-nav-link" data-action="logout" style="display:inline-flex;align-items:center;gap:4px;">${svgWrap(ICON.logout, 13)} Sign out</a>
+            <a href="javascript:void(0)" class="home-nav-link" data-action="logout" style="display:inline-flex;align-items:center;gap:4px;">${svgWrap(ICON.logout, 13)} Logout</a>
           ` : hasGuest ? `
+            <span class="acct-pill" title="Guest Mode" style="margin-left: 6px;">
+              ${svgWrap(ICON.user, 12)}
+              <span class="acct-email">Guest Mode</span>
+            </span>
             <a href="javascript:void(0)" class="home-nav-cta" data-tab="dashboard">Dashboard</a>
-            <a href="javascript:void(0)" class="home-nav-link" data-action="logout" style="display:inline-flex;align-items:center;gap:4px;">${svgWrap(ICON.logout, 13)} Exit</a>
+            <a href="javascript:void(0)" class="home-nav-link" data-action="logout" style="display:inline-flex;align-items:center;gap:4px;">${svgWrap(ICON.logout, 13)} Logout</a>
           ` : `
             <a href="javascript:void(0)" class="home-nav-link" data-action="open-auth" data-auth-mode="signin" style="display: inline-flex; align-items: center; gap: 4px;">${svgWrap(ICON.user, 14)} Sign in</a>
             <a href="javascript:void(0)" class="home-nav-cta" data-action="open-auth" data-auth-mode="signup">Sign up</a>
@@ -63,9 +70,12 @@ function renderHomeFooter() {
       <div class="home-footer-grid">
 
         <div class="home-footer-brand">
-          <a href="#top" class="home-brand">
-            <img src="./media/main svg now.jpg" class="home-brand-logo" alt="IU">
-            <span class="home-brand-name">IUSemPlanner<span class="home-brand-dot">.ai</span></span>
+          <a href="#top" class="home-brand" style="display: inline-flex; align-items: center;">
+            <img src="./media/main svg now 2.png" class="home-brand-logo" alt="IU">
+            <span class="home-brand-name" style="position: relative; display: inline-block; padding-right: 18px; line-height: 1;">
+              IUSemPlanner
+              <span class="brand-ai-badge" style="font-size: 8px; font-weight: 800; font-family: var(--font-mono); color: #fff; background: var(--accent); padding: 1px 4px; border-radius: 999px; position: absolute; top: -6px; right: 0; line-height: 1; letter-spacing: 0.5px;">AI</span>
+            </span>
           </a>
           <p class="home-footer-blurb">
             A predictive student dashboard for Iqra University — one click pulls your full
@@ -125,13 +135,8 @@ function renderLogin() {
 
         <div class="hero-split">
           <div class="hero-left">
-            <h1 class="hero-headline" style="font-family: 'JetBrains Mono', monospace; font-size: clamp(28px, 4vw, 50px); letter-spacing: -0.02em; line-height: 1.3;">
-              <span style="color: var(--accent); font-size: 16px; display: block; margin-bottom: 12px; font-weight: 600; letter-spacing: 0;">// from spreadsheet to dashboard</span>
-              <span style="color: #111827;">Your full IULMS profile,</span><br>
-              <span style="color: #6b7280;">in</span>
-              <em style="color: #d97706; font-style: normal; font-weight: 800; position: relative; padding: 2px 10px; background: #fffbeb; border-radius: 8px; border: 1px solid #fde68a; display: inline-block; margin-left: 4px; vertical-align: text-bottom;">
-                &lt;ONE CLICK/&gt;
-              </em>
+            <h1 class="hero-headline" style="font-family: 'JetBrains Mono', monospace; font-size: clamp(28px, 4vw, 50px); letter-spacing: -0.02em; line-height: 1.4; color: #111827;">
+              GIVING IULMS <img src="./media/iui.png" style="height: 1.5em; vertical-align: middle; margin: 0 -0.35em; position: relative; top: 0.04em; border-radius: 4px;" alt="IULMS"> ITS AI-LEVEL <em>UPDATE</em> SINCE DINOSAURS <img src="./media/ino.png" style="height: 1.4em; vertical-align: middle; margin: 0 -0.2em; position: relative; top: 0; border-radius: 4px;" alt="dinosaurs">.
             </h1>
             <p class="hero-body">
               Courses · transcript · attendance · weekly schedule · midterm results · exam dates —
@@ -170,7 +175,11 @@ function renderLogin() {
             <div class="bm-promo-title">One-click import from IULMS</div>
             <div class="bm-promo-sub">Skip the copy-paste. Drag a bookmark, click it on IULMS, and your full transcript loads here instantly — semesters, grades, credits, schedule.</div>
             <div class="bm-promo-actions">
-              <button class="btn btn-accent" data-login-and="open-import">${svgWrap(ICON.book, 14)} Set up bookmark</button>
+              ${(state && state.user !== null) ? `
+                <button class="btn btn-accent" data-action="open-import">${svgWrap(ICON.book, 14)} Set up bookmark</button>
+              ` : `
+                <button class="btn btn-accent" data-login-and="open-import">${svgWrap(ICON.book, 14)} Set up bookmark</button>
+              `}
               <span class="bm-promo-hint">takes 10 seconds · works in Chrome, Firefox, Edge, Safari</span>
             </div>
           </div>
@@ -205,7 +214,12 @@ function renderLogin() {
               <div class="ai-feat">${svgWrap(ICON.image, 18)}<div><b>Vision upload</b><span>Drop a screenshot and the AI reads it for you.</span></div></div>
             </div>
             <div class="ai-hero-cta">
-              <button class="btn ai-hero-btn" data-action="open-auth" data-auth-mode="signup">${svgWrap(ICON.spark, 16)} Get started — it's free</button>
+              ${(state && state.user !== null) ? `
+                <button class="btn ai-hero-btn" data-tab="dashboard">${svgWrap(ICON.chart, 16)} Go to Dashboard</button>
+                <button class="btn btn-secondary" data-action="logout" style="margin-left: 12px; display: inline-flex; align-items: center; gap: 6px;">${svgWrap(ICON.logout, 16)} Logout</button>
+              ` : `
+                <button class="btn ai-hero-btn" data-action="open-auth" data-auth-mode="signup">${svgWrap(ICON.spark, 16)} Get started — it's free</button>
+              `}
               <span class="ai-hero-note">Every feature unlocked for everyone. No paid plans, no limits.</span>
             </div>
           </div>
@@ -334,17 +348,25 @@ function renderApp() {
   return `
     <header class="header">
       <div class="header-inner">
-        <a href="javascript:void(0)" class="brand" data-tab="home" style="text-decoration: none;">
-          <img src="./media/main svg now.jpg" class="brand-logo" alt="IU">
-          <span class="brand-name" style="color: #111827;">IUSemPlanner.ai</span>
+        <a href="javascript:void(0)" class="brand" data-tab="home" style="text-decoration: none; display: inline-flex; align-items: center;">
+          <img src="./media/main svg now 2.png" class="brand-logo" alt="IU">
+          <span class="brand-name" style="color: #111827; position: relative; display: inline-block; padding-right: 18px; line-height: 1;">
+            IUSemPlanner
+            <span class="brand-ai-badge" style="font-size: 8px; font-weight: 800; font-family: var(--font-mono); color: #fff; background: var(--accent); padding: 1px 4px; border-radius: 999px; position: absolute; top: -6px; right: 0; line-height: 1; letter-spacing: 0.5px;">AI</span>
+          </span>
           ${firstName
       ? `<span class="brand-meta">${svgWrap(ICON.user, 12)}${esc(firstName)}</span>`
       : `<span class="brand-meta">${svgWrap(ICON.hash, 12)}${state.courses.length} courses</span>`}
         </a>
         <div class="header-right">
-          ${state.account ? `<span class="acct-pill" title="${esc(state.account.email)}">${svgWrap(ICON.user, 12)}<span class="acct-email">${esc(state.account.email)}</span><span id="cloud-status" class="cloud-status"></span></span>` : ''}
+          <span class="acct-pill" title="${state.account ? esc(state.account.email) : 'Guest Mode'}">
+            ${svgWrap(ICON.user, 12)}
+            <span class="acct-email">${state.account ? esc(state.account.email) : 'Guest Mode'}</span>
+            <span id="cloud-status" class="cloud-status"></span>
+          </span>
+          <button class="icon-btn-hdr" data-tab="home" title="Back to home">${svgWrap(ICON.back)}</button>
           <button class="icon-btn-hdr" data-action="open-settings" title="Settings">${svgWrap(ICON.settings)}</button>
-          <button class="icon-btn-hdr" data-action="logout" title="${state.account ? 'Sign out' : 'Exit to home'}">${svgWrap(ICON.logout)}</button>
+          <button class="icon-btn-hdr" data-action="logout" title="Logout">${svgWrap(ICON.logout)}</button>
         </div>
       </div>
     </header>
@@ -1373,7 +1395,7 @@ function renderSettingsModal() {
             <div class="note-tag">// account</div>
             <p>Courses: <strong>${state.courses.length}</strong> · Planned: <strong>${state.courses.filter(c => c.planned).length}</strong></p>
             ${state.account ? `<p style="margin-top:4px">Email: <strong>${esc(state.account.email)}</strong></p>` : '<p style="margin-top:4px" class="muted">Guest mode — data saved in this browser.</p>'}
-            <button class="btn btn-secondary btn-sm" data-action="logout" style="margin-top:10px">${svgWrap(ICON.logout, 12)} ${state.account ? 'Sign out' : 'Exit to home'}</button>
+            <button class="btn btn-secondary btn-sm" data-action="logout" style="margin-top:10px">${svgWrap(ICON.logout, 12)} Logout</button>
           </div>
 
           ${aiSection}
