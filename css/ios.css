@@ -1445,8 +1445,7 @@ body.view-home #site-footer {
     height: 14px !important;
   }
   .acct-pill {
-    padding: 4px 8px !important;
-    gap: 4px !important;
+    display: none !important;
   }
 }
 

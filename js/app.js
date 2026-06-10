@@ -971,3 +971,19 @@ async function initAuth() {
 /* Boot: parse any import first, then start auth which renders the right view. */
 checkURLImport();
 initAuth();
+
+/* ── Promo Banner Image Loop ── */
+const PROMO_IMAGES = [
+  './media/WhatsApp Image 2026-06-10 at 2.31.17 PM.jpeg',
+  './media/WhatsApp Image 2026-06-10 at 2.39.39 PM.jpeg',
+  './media/WhatsApp Image 2026-06-10 at 2.39.40 PM.jpeg',
+  './media/WhatsApp Image 2026-06-10 at 2.39.40 PM (1).jpeg'
+];
+let _currentPromoIdx = 0;
+setInterval(() => {
+  const promoEl = document.getElementById('promo-banner-img');
+  if (promoEl) {
+    _currentPromoIdx = (_currentPromoIdx + 1) % PROMO_IMAGES.length;
+    promoEl.src = PROMO_IMAGES[_currentPromoIdx];
+  }
+}, 1000);

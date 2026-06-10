@@ -111,14 +111,19 @@ function renderHomeFooter() {
 
       </div>
 
-      <div class="home-footer-bar">
-        <span class="home-footer-credit">
-          <span class="hf-kw">const</span> creator <span class="hf-op">=</span>
-          <a href="https://ctrlaltimran.com" target="_blank" rel="noopener" class="hf-link">'ctrlaltimran.com'</a>;
-        </span>
-        <span class="home-footer-made">
-          Built for Web Engineering · Sir Muhammad Farhan · by Syed Imran Murtaza (65196) &amp; M. Raza (63234)
-        </span>
+      <div class="home-footer-bar" style="flex-direction: column; align-items: flex-start; gap: 16px;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; width: 100%; align-items: center; gap: 12px;">
+          <span class="home-footer-credit">
+            <span class="hf-kw">const</span> creator <span class="hf-op">=</span>
+            <a href="https://ctrlaltimran.com" target="_blank" rel="noopener" class="hf-link">'ctrlaltimran.com'</a>;
+          </span>
+          <span class="home-footer-made">
+            Built for Web Engineering · Sir Muhammad Farhan · by Syed Imran Murtaza (65196) &amp; M. Raza (63234)
+          </span>
+        </div>
+        <p class="home-footer-disclaimer" style="font-size: 11px; color: var(--text-faint); line-height: 1.6; max-width: 1000px; font-family: var(--font-mono); margin: 0; text-align: justify; width: 100%;">
+          The project was built by its original creators, so please don’t try to label it as “AI-generated.” Okay, yes, AI helped, but the creativity is still in our hands, the debugging is definitely in our hands, and the effort is painfully, proudly, absolutely ours. Everything users do on the site, including their data and activity, happens with their own permission, and the creators are not responsible for what users choose to do there. With that said, enjoy the site, behave like a civilized human, and please don’t make us debug your life choices.
+        </p>
       </div>
     </footer>`;
 }
@@ -195,6 +200,10 @@ function renderLogin() {
               </div>
             </div>
           </div>
+        </div>
+
+        <div style="width: 100%; aspect-ratio: 1600 / 748; margin: 32px 0 40px; border-radius: 24px; overflow: hidden; border: 1px solid var(--border);">
+          <img id="promo-banner-img" src="./media/WhatsApp Image 2026-06-10 at 2.31.17 PM.jpeg" style="width: 100%; height: 100%; object-fit: cover; display: block;" alt="Promo Banner">
         </div>
 
         <div class="ai-hero" id="ai-section">
@@ -364,9 +373,9 @@ function renderApp() {
             <span class="acct-email">${state.account ? esc(state.account.email) : 'Guest Mode'}</span>
             <span id="cloud-status" class="cloud-status"></span>
           </span>
-          <button class="icon-btn-hdr" data-tab="home" title="Back to home">${svgWrap(ICON.back)}</button>
+          <button class="icon-btn-hdr" data-tab="home" title="Back to home" style="gap: 6px;">${svgWrap(ICON.back)}<span style="font-size: 13px; font-weight: 500;">Home</span></button>
           <button class="icon-btn-hdr" data-action="open-settings" title="Settings">${svgWrap(ICON.settings)}</button>
-          <button class="icon-btn-hdr" data-action="logout" title="Logout">${svgWrap(ICON.logout)}</button>
+          <button class="icon-btn-hdr" data-action="logout" title="Logout" style="gap: 6px;">${svgWrap(ICON.logout)}<span style="font-size: 13px; font-weight: 500;">Logout</span></button>
         </div>
       </div>
     </header>
