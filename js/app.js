@@ -734,35 +734,76 @@ document.addEventListener('input', (e) => {
    round-trip (which navigates away from the page and back). */
 let _pendingImport = null; /* parsed result waiting to be applied after auth */
 
+/* ── Debug logger ──
+   Everything important during boot/import/auth is logged with the [IUSP]
+   prefix so problems can be diagnosed straight from the browser console. */
+function iuspLog(...args) {
+  try { console.log('%c[IUSP]', 'color:#2563eb;font-weight:bold', ...args); } catch (e) { }
+}
+
+/* True when the current URL is a return-trip from an OAuth provider
+   (Google sends back ?code=... or #access_token=... / #error=...).
+   We must NOT touch the URL in that case — the Supabase SDK needs to read
+   these parameters to complete the sign-in. */
+function isOAuthReturnURL() {
+  const h = window.location.hash || '';
+  const q = window.location.search || '';
+  return h.indexOf('access_token=') !== -1 || h.indexOf('error=') !== -1
+    || q.indexOf('code=') !== -1 || q.indexOf('error=') !== -1;
+}
+
 function checkURLImport() {
   const url = new URL(window.location.href);
   let importData = url.searchParams.get('import');
+  let fromURL = !!importData;
   if (!importData && window.location.hash.startsWith('#import=')) {
     importData = window.location.hash.substring(8);
+    fromURL = true;
   }
   if (!importData) {
     /* maybe a payload was stashed before a Google-login redirect */
     try {
       const raw = localStorage.getItem('iusp_pending_raw');
-      if (raw) importData = raw;
+      if (raw) { importData = raw; iuspLog('boot: restored pending import from localStorage (' + raw.length + ' chars)'); }
     } catch (e) { }
-    if (!importData) return false;
+    if (!importData) { iuspLog('boot: no import payload in URL or localStorage'); return false; }
+  } else {
+    iuspLog('boot: import payload found in URL (' + importData.length + ' chars)');
   }
 
-  // Clean the URL immediately so the long string vanishes
-  window.history.replaceState({}, document.title, window.location.pathname);
+  /* Clean the URL ONLY when the import came from the URL itself.
+     CRITICAL FIX: previously this ran unconditionally, which stripped
+     Google's OAuth ?code= / #access_token= parameters from the URL before
+     the Supabase SDK could read them — so the sign-in silently failed and
+     the auth modal reappeared in a loop. */
+  if (fromURL && !isOAuthReturnURL()) {
+    window.history.replaceState({}, document.title, window.location.pathname);
+    iuspLog('boot: cleaned #import= from URL');
+  } else if (isOAuthReturnURL()) {
+    iuspLog('boot: OAuth return detected — leaving URL untouched for Supabase');
+  }
 
   try {
     const result = parseIULMSBookmarkData(importData);
     if (!result || (result.courses.length === 0 && result.transcript.length === 0)) {
+      iuspLog('boot: import parsed but contained no courses/transcript — ignoring');
       return false;
     }
     _pendingImport = result;
+    iuspLog('boot: import parsed OK →',
+      result.courses.length + ' courses,',
+      result.transcript.length + ' transcript rows,',
+      (result.attendance || []).length + ' attendance,',
+      (result.schedule || []).length + ' schedule,',
+      (result.midterms || []).length + ' midterms,',
+      'CGPA=' + result.transcriptGPA);
     /* persist raw so a Google OAuth redirect doesn't lose it */
     try { localStorage.setItem('iusp_pending_raw', importData); } catch (e) { }
     return true;
   } catch (e) {
+    iuspLog('boot: import parse FAILED —', e.message);
     alert('Could not import from IULMS: ' + e.message);
+    try { localStorage.removeItem('iusp_pending_raw'); } catch (e2) { }
     return false;
   }
 }
@@ -798,36 +839,68 @@ function applyPendingImport() {
 }
 
 /* ── Enter the app as a signed-in account ──
-   Loads cloud data, then reconciles with any fresh import or local data. */
+   Loads cloud data, then reconciles with any fresh import or local data.
+
+   CRITICAL FIX: this used to be called TWICE concurrently at boot (once from
+   onAuthChange's INITIAL_SESSION event, once from getCurrentUser()). The
+   first call applied the bookmark import and started saving it; the second
+   found the import already consumed, loaded the OLD (often empty) cloud row,
+   and overwrote the freshly imported data — which is why the dashboard showed
+   the "imported" banner and then every tab went empty. Now it's single-flight
+   and an empty/stale cloud row can never wipe newer local data. */
+let _enterAppPromise = null;
 async function enterApp(account) {
-  state.account = { id: account.id, email: account.email || '' };
-  if (!state.user) state.user = { plan: 'pro' };
-  state.authError = null;
-  state.modal = null;
-
-  let cloud = null;
-  try { cloud = await window.IUSPAuth.cloudLoad(account.id); } catch (e) { }
-
-  if (_pendingImport) {
-    /* Fresh IULMS import takes priority, then save it to the account. */
-    applyPendingImport();
-    await window.IUSPAuth.cloudSave(account.id, dataBlob());
-  } else if (cloud) {
-    /* Returning user — load their saved data from the cloud. */
-    applyBlob(cloud);
-  } else {
-    /* New account with no cloud row yet — push whatever is local up. */
-    await window.IUSPAuth.cloudSave(account.id, dataBlob());
+  if (state.account && state.account.id === account.id && !_pendingImport) {
+    iuspLog('enterApp: already signed in as', account.email, '— skipping duplicate call');
+    return;
   }
+  if (_enterAppPromise) {
+    iuspLog('enterApp: another enterApp is in flight — waiting for it instead of racing');
+    return _enterAppPromise;
+  }
+  _enterAppPromise = (async () => {
+    iuspLog('enterApp: signing in as', account.email || account.id);
+    state.account = { id: account.id, email: account.email || '' };
+    if (!state.user) state.user = { plan: 'pro' };
+    state.authError = null;
+    state.modal = null;
 
-  state.tab = 'dashboard';
-  render();
-  window.scrollTo(0, 0);
+    let cloud = null;
+    try { cloud = await window.IUSPAuth.cloudLoad(account.id); } catch (e) { iuspLog('enterApp: cloudLoad threw —', e.message); }
+    const cloudHasData = !!(cloud && (((cloud.courses || []).length) || ((cloud.transcript || []).length)));
+    const localHasData = !!(state.courses.length || state.transcript.length);
+    const cloudTime = (cloud && cloud.dataTimestamp) || 0;
+    const localTime = state.dataTimestamp || 0;
+    iuspLog('enterApp: cloud row =', cloud ? `found (${(cloud.courses || []).length} courses, ts ${cloudTime})` : 'none',
+      '| local =', `${state.courses.length} courses, ts ${localTime}`,
+      '| pendingImport =', !!_pendingImport);
+
+    if (_pendingImport) {
+      /* Fresh IULMS import always wins, then save it to the account. */
+      applyPendingImport();
+      const ok = await window.IUSPAuth.cloudSave(account.id, dataBlob());
+      iuspLog('enterApp: applied fresh import and cloudSave →', ok ? 'OK' : 'FAILED (check Supabase table/RLS)');
+    } else if (cloudHasData && (!localHasData || cloudTime >= localTime)) {
+      /* Returning user — cloud row has real data and is not older than local. */
+      applyBlob(cloud);
+      iuspLog('enterApp: loaded data from cloud');
+    } else {
+      /* No usable cloud data (or local is newer) — push local state up. */
+      const ok = await window.IUSPAuth.cloudSave(account.id, dataBlob());
+      iuspLog('enterApp: kept local data and pushed to cloud →', ok ? 'OK' : 'FAILED (check Supabase table/RLS)');
+    }
+
+    state.tab = 'dashboard';
+    render();
+    window.scrollTo(0, 0);
+  })();
+  try { await _enterAppPromise; } finally { _enterAppPromise = null; }
 }
 
 /* ── Auth initialization (runs once at startup) ── */
 async function initAuth() {
   const hasAuth = window.IUSPAuth && window.IUSPAuth.authAvailable();
+  iuspLog('initAuth: supabase available =', hasAuth, '| oauthReturn =', isOAuthReturnURL());
 
   if (!hasAuth) {
     /* Guest-only build (no Supabase keys). Preserve the old behaviour: a
@@ -836,16 +909,20 @@ async function initAuth() {
       applyPendingImport();
       state.user = { plan: 'pro' };
       state.tab = 'dashboard';
+      iuspLog('initAuth: guest mode — import applied locally');
     }
     render();
     return;
   }
 
-  /* React to login/logout (also fires after Google OAuth redirect). */
+  /* React to login/logout (also fires after Google OAuth redirect).
+     enterApp() is single-flight, so it's safe even if Supabase fires
+     INITIAL_SESSION and SIGNED_IN in quick succession. */
   window.IUSPAuth.onAuthChange((user) => {
-    if (user && !state.account) {
+    iuspLog('authChange event:', user ? ('signed in (' + (user.email || user.id) + ')') : 'signed out');
+    if (user) {
       enterApp(user);
-    } else if (!user && state.account) {
+    } else if (state.account) {
       state.account = null;
       state.user = null;
       render();
@@ -853,10 +930,31 @@ async function initAuth() {
   });
 
   const user = await window.IUSPAuth.getCurrentUser();
+  iuspLog('initAuth: getCurrentUser →', user ? (user.email || user.id) : 'no session');
   if (user) {
     await enterApp(user);
+  } else if (isOAuthReturnURL()) {
+    /* We just came back from Google — the SDK is exchanging the code in the
+       background and onAuthChange will fire in a moment. Do NOT show the
+       sign-in modal again (that was the "stuck on sign in" loop). */
+    iuspLog('initAuth: waiting for Supabase to complete the Google sign-in…');
+    state.user = null;
+    state.account = null;
+    state.modal = null;
+    state.importBanner = { type: 'info', text: 'Completing Google sign-in…' };
+    render();
+    /* Safety net: if nothing happened after 8s, surface the auth modal with a hint. */
+    setTimeout(() => {
+      if (!state.account) {
+        iuspLog('initAuth: OAuth completion timed out — showing auth modal. Check Supabase Auth → URL Configuration (Site URL + Redirect URLs must include this exact page URL).');
+        state.importBanner = { type: 'error', text: 'Google sign-in did not complete. Please try again (or use email + password).' };
+        state.modal = 'auth';
+        render();
+      }
+    }, 8000);
   } else if (_pendingImport) {
     /* Logged out + just imported → ask them to sign in / sign up to save it. */
+    iuspLog('initAuth: logged out with pending import — showing auth modal');
     state.user = null;
     state.account = null;
     state.modal = 'auth';

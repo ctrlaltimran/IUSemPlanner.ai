@@ -208,36 +208,38 @@ function buildBookmarkletSource(target) {
     + 'function removeOverlay(){if(overlay&&overlay.parentNode)overlay.parentNode.removeChild(overlay);}\n'
     + 'function failExit(m){removeOverlay();alert("IUSemPlanner\\n\\n"+m);}\n'
     + 'async function fetchDoc(path){try{var r=await fetch(path,{credentials:"include",cache:"no-store"});if(!r.ok)return null;var h=await r.text();return new DOMParser().parseFromString(h,"text/html");}catch(e){return null;}}\n'
+    + 'function blog(){try{console.log.apply(console,["%c[IUSP-BM]","color:#059669;font-weight:bold"].concat([].slice.call(arguments)));}catch(e){}}\n'
     + 'try{\n'
     + 'showOverlay();\n'
+    + 'blog("bookmarklet v2.2 started on",location.pathname,"→ target",TARGET);\n'
     + 'var payload={version:2,timestamp:Date.now(),sourceUrl:location.href,profile:{name:null},courseListText:"",attendance:[],transcript:[],transcriptGPA:null,schedule:[],scheduleStructured:true,midterms:[],examSchedule:[]};\n'
     /* courses + profile */
     + 'setStatus("Reading your curriculum & courses...",12);\n'
     + 'var regDoc=await fetchDoc("/registration/Registration_FEST_student_EarlyRegistrationBeta.php");\n'
-    + 'if(regDoc){var rr=_bm_scrapeRegistration(regDoc);payload.profile=rr.profile;payload.courseListText=rr.courseListText;}\n'
+    + 'if(regDoc){var rr=_bm_scrapeRegistration(regDoc);payload.profile=rr.profile;payload.courseListText=rr.courseListText;blog("registration page fetched: profile=",JSON.stringify(rr.profile),"courseLines=",rr.courseListText?rr.courseListText.split(String.fromCharCode(10)).length:0);}else{blog("registration page fetch FAILED — will try current page");}\n'
     + 'if(!payload.courseListText){var rr2=_bm_scrapeRegistration(document);if(rr2.courseListText){payload.courseListText=rr2.courseListText;if(!payload.profile||!payload.profile.name)payload.profile=rr2.profile;}}\n'
     /* transcript via data service */
     + 'setStatus("Fetching official transcript & CGPA...",34);\n'
     + 'try{var degreeId=(payload.profile&&payload.profile.program)||"BS(SE)";var tdoc=await fetchDoc("/sic/Transcript.php");if(tdoc){var opt=tdoc.querySelector("#cmbDegree option");if(opt&&opt.value)degreeId=opt.value;}\n'
     + 'var tr=await fetch("/sic/SICDataService.php",{method:"POST",credentials:"include",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8","X-Requested-With":"XMLHttpRequest"},body:"action=GetTranscript&degreeId="+encodeURIComponent(degreeId)});\n'
     + 'if(tr.ok){var data=null;try{data=await tr.json();}catch(e){try{data=JSON.parse(await tr.text());}catch(e2){}}\n'
-    + 'if(data&&data.attemptedCourses){data.attemptedCourses.forEach(function(c){payload.transcript.push({code:(c.crsCode||"").toUpperCase(),title:c.crsTitle||"",credits:parseFloat(c.crsHours)||0,grade:(c.crsGrade||"").toUpperCase(),points:parseFloat(c.gpa)||0,semNo:c.semNo});});if(data.cgpa!=null)payload.transcriptGPA=parseFloat(data.cgpa);}}}catch(e){}\n'
+    + 'blog("transcript service response ok=",tr.ok,"parsed=",!!data,"rows=",data&&data.attemptedCourses?data.attemptedCourses.length:0,"cgpa=",data?data.cgpa:null);if(data&&data.attemptedCourses){data.attemptedCourses.forEach(function(c){payload.transcript.push({code:(c.crsCode||"").toUpperCase(),title:c.crsTitle||"",credits:parseFloat(c.crsHours)||0,grade:(c.crsGrade||"").toUpperCase(),points:parseFloat(c.gpa)||0,semNo:c.semNo});});if(data.cgpa!=null)payload.transcriptGPA=parseFloat(data.cgpa);}}}catch(e){}\n'
     /* attendance */
     + 'setStatus("Fetching attendance...",54);\n'
-    + 'var aDoc=await fetchDoc("/sic/StudentAttendance.php");if(aDoc)payload.attendance=_bm_scrapeAttendance(aDoc);\n'
+    + 'var aDoc=await fetchDoc("/sic/StudentAttendance.php");if(aDoc)payload.attendance=_bm_scrapeAttendance(aDoc);blog("attendance rows=",payload.attendance.length);\n'
     /* schedule */
     + 'setStatus("Fetching weekly schedule...",68);\n'
-    + 'var sDoc=await fetchDoc("/sic/Schedule.php");if(sDoc)payload.schedule=_bm_scrapeSchedule(sDoc);\n'
+    + 'var sDoc=await fetchDoc("/sic/Schedule.php");if(sDoc)payload.schedule=_bm_scrapeSchedule(sDoc);blog("schedule entries=",payload.schedule.length);\n'
     /* midterms */
     + 'setStatus("Fetching midterm results...",82);\n'
-    + 'var mDoc=await fetchDoc("/sic/ExamResultMid.php");if(mDoc)payload.midterms=_bm_scrapeMidterms(mDoc);\n'
+    + 'var mDoc=await fetchDoc("/sic/ExamResultMid.php");if(mDoc)payload.midterms=_bm_scrapeMidterms(mDoc);blog("midterm rows=",payload.midterms.length);\n'
     /* exam schedule */
     + 'setStatus("Checking exam schedule...",92);\n'
-    + 'var eDoc=await fetchDoc("/sic/examschedule.php");if(eDoc)payload.examSchedule=_bm_scrapeExam(eDoc);\n'
+    + 'var eDoc=await fetchDoc("/sic/examschedule.php");if(eDoc)payload.examSchedule=_bm_scrapeExam(eDoc);blog("exam rows=",payload.examSchedule.length);\n'
     /* encode + redirect */
     + 'setStatus("Done - redirecting...",100);\n'
     + 'if(!payload.courseListText&&payload.transcript.length===0){failExit("Could not read your data. Please make sure you are logged in to IULMS, then click the bookmark again.");return;}\n'
-    + 'var json=JSON.stringify(payload);var encoded=btoa(unescape(encodeURIComponent(json)));var url=TARGET+"#import="+encoded;\n'
+    + 'var json=JSON.stringify(payload);var encoded=btoa(unescape(encodeURIComponent(json)));var url=TARGET+"#import="+encoded;blog("payload ready:",json.length,"chars json,",encoded.length,"chars base64 — redirecting");\n'
     + 'setTimeout(function(){removeOverlay();var w=window.open(url,"_blank");if(!w||w.closed||typeof w.closed==="undefined"){window.location.href=url;}},300);\n'
     + '}catch(err){removeOverlay();alert("IUSemPlanner error:\\n"+(err&&err.message?err.message:err)+"\\n\\nMake sure you are logged in to IULMS and try again.");}\n'
     + '})();';
