@@ -383,6 +383,60 @@ function predictGradeFromPct(pct) {
      - Historical: total credits + points from transcript
      - Current semester: in-progress courses with midterm-based predictions
    Returns three scenarios: pessimistic, expected, optimistic. */
+/* Helper to match a course from a list (e.g. midterms, attendance) by code or name,
+   with robust cleanup of annotations like (DE), (LAB), etc., to handle mismatches. */
+function findMatchingCourseItem(course, list, getName, getCode) {
+  if (!list || list.length === 0) return null;
+
+  const codeUp = (course.code || '').toUpperCase().trim();
+  const nameUp = (course.name || '').toUpperCase().replace(/\s+/g, ' ').trim();
+  const isCourseLab = course.isLab || /-L$/i.test(codeUp) || /\(LAB\)/i.test(nameUp) || /\bLAB\b/i.test(nameUp);
+
+  function cleanName(str) {
+    return (str || '')
+      .toUpperCase()
+      .replace(/\(DE\)/g, '')
+      .replace(/\(LAB\)/g, '')
+      .replace(/[^A-Z0-9]/g, '')
+      .trim();
+  }
+
+  const cleanCourse = cleanName(course.name);
+  let exact = null;
+  let fallback = null;
+
+  for (const item of list) {
+    const itemCode = getCode ? (getCode(item) || '').toUpperCase().trim() : '';
+    const itemName = getName ? (getName(item) || '').toUpperCase().trim() : '';
+
+    if (codeUp && itemCode && codeUp === itemCode) {
+      return item;
+    }
+
+    if (nameUp && itemName && nameUp === itemName) {
+      return item;
+    }
+
+    const isItemLab = /-L$/i.test(itemCode) || /\(LAB\)/i.test(itemName) || /\bLAB\b/i.test(itemName);
+    if (isCourseLab !== isItemLab) {
+      continue;
+    }
+
+    const cleanItem = cleanName(itemName);
+    if (cleanCourse && cleanItem && cleanCourse === cleanItem) {
+      exact = item;
+    }
+
+    if (!fallback && cleanCourse && cleanItem) {
+      if (cleanCourse.indexOf(cleanItem) === 0 || cleanItem.indexOf(cleanCourse) === 0) {
+        fallback = item;
+      }
+    }
+  }
+
+  return exact || fallback;
+}
+
 /* ── Predict end-of-semester CGPA ── */
 function predictSemesterOutcome(transcript, midterms, currentCourses) {
   // 1. Get past stats. If transcript is empty, fallback to the main course list estimate!
@@ -404,31 +458,16 @@ function predictSemesterOutcome(transcript, midterms, currentCourses) {
     }
   }
 
-  // 2. Build map: link midterms by code OR name safely
-  const midPct = {};
-  const midData = {};
-  for (const m of midterms || []) {
-    if (m.code) {
-      midPct[m.code] = m.percentage;
-      midData[m.code] = m;
-    }
-    const normName = (m.name || '').toLowerCase().replace(/\s+/g, ' ').trim();
-    if (normName) {
-      midPct[normName] = m.percentage;
-      midData[normName] = m;
-    }
-  }
-
-  // 3. Only predict for courses actually marked "In Progress" in your main list
+  // 2. Only predict for courses actually marked "In Progress" in your main list
   const semesterCourses = (currentCourses || []).filter(c => c.status === 'inProgress');
   if (semesterCourses.length === 0) {
     return { pastCGPA, semesterPredictions: [], scenarios: null };
   }
 
   const semesterPredictions = semesterCourses.map(c => {
-    const normName = (c.name || '').toLowerCase().replace(/\s+/g, ' ').trim();
-    const pct = midPct[c.code] != null ? midPct[c.code] : midPct[normName];
-    const mData = midData[c.code] || midData[normName] || {};
+    const m = findMatchingCourseItem(c, midterms || [], x => x.name, x => x.code);
+    const pct = m != null ? m.percentage : null;
+    const mData = m || {};
 
     const expected = pct != null ? predictGradeFromPct(pct) : null;
     let optimisticPt = expected ? Math.min(4.0, expected.point + 0.3) : 3.0;
@@ -437,7 +476,7 @@ function predictSemesterOutcome(transcript, midterms, currentCourses) {
     if (!expected) {
       return {
         code: c.code, name: c.name, credits: c.credits,
-        midtermPct: null, midtermRaw: null, quizzes: null, project: null, expected: null,
+        midtermPct: null, midtermRaw: null, midtermTotal: 20, quizzes: null, project: null, expected: null,
         expectedPt: 3.0, optimisticPt: 4.0, pessimisticPt: 2.0,
       };
     }
@@ -445,6 +484,7 @@ function predictSemesterOutcome(transcript, midterms, currentCourses) {
       code: c.code, name: c.name, credits: c.credits,
       midtermPct: pct,
       midtermRaw: mData.obtained,
+      midtermTotal: mData.total || 20,
       quizzes: mData.quizzes,
       project: mData.project,
       expected: expected.grade,

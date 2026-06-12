@@ -326,24 +326,10 @@ function mlBuildFeatures(course, ctx) {
   const nameUp = (course.name || '').toUpperCase();
   const codeUp = (course.code || '').toUpperCase();
 
-  /* two-pass matcher: EXACT name/code match first, prefix match only as a
-     fallback — otherwise "WEB ENGINEERING (LAB)" would wrongly inherit the
-     rows of "WEB ENGINEERING" (which appears earlier in the table) */
-  function _pick(list, getName, getCode) {
-    let exact = null, prefix = null;
-    for (const item of (list || [])) {
-      const n = (getName(item) || '').toUpperCase();
-      const c = getCode ? (getCode(item) || '').toUpperCase() : '';
-      if ((c && c === codeUp) || (n && n === nameUp)) { exact = item; break; }
-      if (!prefix && n && (nameUp.indexOf(n) === 0 || n.indexOf(nameUp) === 0)) prefix = item;
-    }
-    return exact || prefix;
-  }
-
   /* midterm / quizzes / project from the imported ExamResultMid data */
   let mid = null, quiz = null, proj = null;
   {
-    const m = _pick(ctx.midterms, x => x.name, x => x.code);
+    const m = findMatchingCourseItem(course, ctx.midterms, x => x.name, x => x.code);
     if (m) {
       /* IULMS shows 0 until a component is actually marked — treat 0 as
          "not yet marked" and impute, instead of punishing the student */
@@ -355,7 +341,7 @@ function mlBuildFeatures(course, ctx) {
   /* attendance from the imported StudentAttendance data */
   let att = null;
   {
-    const a = _pick(ctx.attendance, x => (x.course || '').replace(/\s*\(\d+\)\s*$/, ''), null);
+    const a = findMatchingCourseItem(course, ctx.attendance, x => (x.course || '').replace(/\s*\(\d+\)\s*$/, ''), null);
     if (a && a.totalSessions > 0) att = _mlClamp01(a.present / a.totalSessions);
   }
   const cgpa = ctx.cgpa != null ? _mlClamp01(ctx.cgpa / 4) : 0.65;

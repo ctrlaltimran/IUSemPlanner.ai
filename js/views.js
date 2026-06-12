@@ -1642,10 +1642,9 @@ function renderDashboard() {
             <div class="pred-name">${esc(p.name)}</div>
             ${extraMarks}
             ${finalsNote}
-          </div>
           <div class="pred-mid">
             ${p.midtermPct != null
-          ? `<div class="pred-mid-val">${p.midtermRaw}/20</div><div class="pred-mid-lbl">${p.midtermPct.toFixed(0)}%</div>`
+          ? `<div class="pred-mid-val">${p.midtermRaw}/${p.midtermTotal || 20}</div><div class="pred-mid-lbl">${p.midtermPct.toFixed(0)}%</div>`
           : `<div class="pred-mid-val muted">—</div><div class="pred-mid-lbl">no midterm</div>`}
           </div>
           <div class="pred-grades">
@@ -1942,45 +1941,47 @@ function renderMLLab() {
 function renderMLIdle(ml) {
   const nCourses = (state.courses || []).filter(c => c.status === 'inProgress').length;
   return `
-    <div class="view-head">
-      <div>
-        <h1>ML/ANN Lab</h1>
-        <div class="view-sub">// neural academic predictor · feed-forward ANN + deep ensemble</div>
+    <div class="container">
+      <div class="view-head">
+        <div>
+          <h1>ML/ANN Lab</h1>
+          <div class="view-sub">// neural academic predictor · feed-forward ANN + deep ensemble</div>
+        </div>
       </div>
-    </div>
 
-    <div class="ml-hero">
-      <div class="ml-hero-glow"></div>
-      <div class="ml-status-row">
-        <span class="ml-dot off"></span>
-        <span class="ml-status-label">NEURAL ENGINE · OFFLINE</span>
+      <div class="ml-hero">
+        <div class="ml-hero-glow"></div>
+        <div class="ml-status-row">
+          <span class="ml-dot off"></span>
+          <span class="ml-status-label">NEURAL ENGINE · OFFLINE</span>
+        </div>
+        <h2 class="ml-hero-title">Machine Learning / Artificial Neural Network<br>Academic Performance Predictor</h2>
+        <p class="ml-hero-sub">
+          A feed-forward neural network (Multi-Layer Perceptron) trained with backpropagation and the
+          Adam optimizer, run as a <b>5-model deep ensemble</b> for honest uncertainty estimates. It predicts
+          your <b>expected grade per course</b>, <b>semester GPA</b>, <b>projected CGPA</b> and <b>academic / attendance
+          risk</b> — using the real marks, attendance and transcript you imported from IULMS as input features.
+        </p>
+        <div class="ml-specs">
+          <span class="ml-spec">${svgWrap(ICON.chip, 13)} MLP 8 → 16 → 10 → 1</span>
+          <span class="ml-spec">${svgWrap(ICON.layers, 13)} deep ensemble × 5</span>
+          <span class="ml-spec">${svgWrap(ICON.zap, 13)} Adam · backprop</span>
+          <span class="ml-spec">${svgWrap(ICON.hash, 13)} 8 input features</span>
+          <span class="ml-spec">${svgWrap(ICON.target, 13)} occlusion explanations</span>
+        </div>
+        <button class="btn ml-init-btn" data-action="ml-init">${svgWrap(ICON.zap, 16)} Initialize Neural Engine</button>
+        <div class="ml-hero-note">
+          ${nCourses > 0
+        ? `${nCourses} in-progress course${nCourses === 1 ? '' : 's'} detected from your IULMS import — ready to predict.`
+        : `No in-progress courses imported yet — the engine will still train, and you can explore the what-if simulator. Import from IULMS for personal predictions.`}
+        </div>
+        ${ml.error ? `<div class="ml-hero-note" style="color:#fca5a5">Last run failed: ${esc(ml.error)}</div>` : ''}
       </div>
-      <h2 class="ml-hero-title">Machine Learning / Artificial Neural Network<br>Academic Performance Predictor</h2>
-      <p class="ml-hero-sub">
-        A feed-forward neural network (Multi-Layer Perceptron) trained with backpropagation and the
-        Adam optimizer, run as a <b>5-model deep ensemble</b> for honest uncertainty estimates. It predicts
-        your <b>expected grade per course</b>, <b>semester GPA</b>, <b>projected CGPA</b> and <b>academic / attendance
-        risk</b> — using the real marks, attendance and transcript you imported from IULMS as input features.
-      </p>
-      <div class="ml-specs">
-        <span class="ml-spec">${svgWrap(ICON.chip, 13)} MLP 8 → 16 → 10 → 1</span>
-        <span class="ml-spec">${svgWrap(ICON.layers, 13)} deep ensemble × 5</span>
-        <span class="ml-spec">${svgWrap(ICON.zap, 13)} Adam · backprop</span>
-        <span class="ml-spec">${svgWrap(ICON.hash, 13)} 8 input features</span>
-        <span class="ml-spec">${svgWrap(ICON.target, 13)} occlusion explanations</span>
-      </div>
-      <button class="btn ml-init-btn" data-action="ml-init">${svgWrap(ICON.zap, 16)} Initialize Neural Engine</button>
-      <div class="ml-hero-note">
-        ${nCourses > 0
-      ? `${nCourses} in-progress course${nCourses === 1 ? '' : 's'} detected from your IULMS import — ready to predict.`
-      : `No in-progress courses imported yet — the engine will still train, and you can explore the what-if simulator. Import from IULMS for personal predictions.`}
-      </div>
-      ${ml.error ? `<div class="ml-hero-note" style="color:#fca5a5">Last run failed: ${esc(ml.error)}</div>` : ''}
-    </div>
 
-    <div class="note" style="margin-top:14px">
-      <div class="note-tag">// honesty note</div>
-      <p>The network trains on a <strong>synthetic dataset</strong> whose feature–grade relationships follow established education research (attendance, continuous assessment and prior GPA are the strongest predictors). It is <strong>not</strong> trained on real IULMS records — your real imported data is used as the <em>input</em> to the predictions. Training on real historical academic data (supported by the VPS backend) would improve accuracy.</p>
+      <div class="note" style="margin-top:14px">
+        <div class="note-tag">// honesty note</div>
+        <p>The network trains on a <strong>synthetic dataset</strong> whose feature–grade relationships follow established education research (attendance, continuous assessment and prior GPA are the strongest predictors). It is <strong>not</strong> trained on real IULMS records — your real imported data is used as the <em>input</em> to the predictions. Training on real historical academic data (supported by the VPS backend) would improve accuracy.</p>
+      </div>
     </div>
   `;
 }
@@ -2001,27 +2002,29 @@ function renderMLTraining(ml) {
   }
   const lastLoss = losses.length ? losses[losses.length - 1] : null;
   return `
-    <div class="view-head">
-      <div>
-        <h1>ML/ANN Lab</h1>
-        <div class="view-sub">// neural engine starting…</div>
+    <div class="container">
+      <div class="view-head">
+        <div>
+          <h1>ML/ANN Lab</h1>
+          <div class="view-sub">// neural engine starting…</div>
+        </div>
       </div>
-    </div>
-    <div class="ml-hero training">
-      <div class="ml-hero-glow"></div>
-      <div class="ml-status-row">
-        <span class="ml-dot on"></span>
-        <span class="ml-status-label">NEURAL ENGINE · TRAINING</span>
+      <div class="ml-hero training">
+        <div class="ml-hero-glow"></div>
+        <div class="ml-status-row">
+          <span class="ml-dot on"></span>
+          <span class="ml-status-label">NEURAL ENGINE · TRAINING</span>
+        </div>
+        <h2 class="ml-hero-title">Training the neural ensemble…</h2>
+        <div class="ml-train-meta">
+          network <b>${ml.member || 1}/${ml.members || 5}</b> · epoch <b>${ml.epoch || 0}/${ml.epochs || 60}</b>
+          ${lastLoss != null ? ` · MSE loss <b>${lastLoss.toFixed(4)}</b>` : ''}
+        </div>
+        <div class="ml-progress"><div class="ml-progress-fill" style="width:${ml.progress || 0}%"></div></div>
+        <div class="ml-progress-pct">${ml.progress || 0}%</div>
+        ${spark ? `<div class="ml-spark-wrap"><div class="ml-spark-label">training loss</div>${spark}</div>` : ''}
+        <div class="ml-log">${(ml.log || []).slice(-6).map(l => `<div>${esc(l)}</div>`).join('')}</div>
       </div>
-      <h2 class="ml-hero-title">Training the neural ensemble…</h2>
-      <div class="ml-train-meta">
-        network <b>${ml.member || 1}/${ml.members || 5}</b> · epoch <b>${ml.epoch || 0}/${ml.epochs || 60}</b>
-        ${lastLoss != null ? ` · MSE loss <b>${lastLoss.toFixed(4)}</b>` : ''}
-      </div>
-      <div class="ml-progress"><div class="ml-progress-fill" style="width:${ml.progress || 0}%"></div></div>
-      <div class="ml-progress-pct">${ml.progress || 0}%</div>
-      ${spark ? `<div class="ml-spark-wrap"><div class="ml-spark-label">training loss</div>${spark}</div>` : ''}
-      <div class="ml-log">${(ml.log || []).slice(-6).map(l => `<div>${esc(l)}</div>`).join('')}</div>
     </div>
   `;
 }
@@ -2074,87 +2077,89 @@ function renderMLDashboard(ml) {
   const wiDebar = wi.att <= 75;
 
   return `
-    <div class="view-head">
-      <div>
-        <h1>ML/ANN Lab</h1>
-        <div class="view-sub">// predictions from your imported IULMS data · ${r.engine === 'vps' ? 'engine: VPS API (scikit-learn)' : 'engine: in-browser ANN'} · val MAE ${r.valMAE != null ? Number(r.valMAE).toFixed(3) : '—'} GP</div>
-      </div>
-      <button class="btn btn-secondary btn-sm" data-action="ml-retrain">${svgWrap(ICON.refresh, 13)} Retrain</button>
-    </div>
-
-    <div class="ml-stats">
-      <div class="ml-stat">
-        <div class="ml-stat-label">${svgWrap(ICON.trend, 12)} predicted semester GPA</div>
-        <div class="ml-stat-value indigo">${r.sgpa != null ? r.sgpa.toFixed(2) : '—'}</div>
-        <div class="ml-stat-hint">${r.sgpa != null ? '± ' + r.sgpaStd.toFixed(2) + ' (ensemble σ)' : 'import courses first'}</div>
-      </div>
-      <div class="ml-stat">
-        <div class="ml-stat-label">${svgWrap(ICON.graduation, 12)} projected CGPA</div>
-        <div class="ml-stat-value">${r.projCgpa != null ? r.projCgpa.toFixed(2) : '—'}</div>
-        <div class="ml-stat-hint">${r.cgpa != null ? 'current ' + Number(r.cgpa).toFixed(2) + ' → after this semester' : 'needs transcript'}</div>
-      </div>
-      <div class="ml-stat">
-        <div class="ml-stat-label">${svgWrap(ICON.warning, 12)} courses at risk</div>
-        <div class="ml-stat-value ${r.riskCounts.high ? 'red' : ''}">${r.riskCounts.high}</div>
-        <div class="ml-stat-hint">${r.riskCounts.watch} on watch · ${r.riskCounts.safe} on track</div>
-      </div>
-      <div class="ml-stat">
-        <div class="ml-stat-label">${svgWrap(ICON.chip, 12)} model</div>
-        <div class="ml-stat-value" style="font-size:17px;letter-spacing:0">MLP ×5</div>
-        <div class="ml-stat-hint">8→16→10→1 · Adam · deep ensemble</div>
-      </div>
-    </div>
-
-    ${r.courses.length ? `<div class="ml-grid">${courseCards}</div>` : `
-      <div class="empty-state" style="margin-top:14px">
-        <div class="empty-tag">// no in-progress courses</div>
-        <h3>Import from IULMS to get personal predictions</h3>
-        <p>The engine is trained and ready — it just needs your current courses, midterm marks and attendance.</p>
-        <button class="btn btn-primary" data-action="open-import">${svgWrap(ICON.download, 14)} Import data</button>
-      </div>`}
-
-    <div class="panel ml-wi">
-      <div class="panel-head">
-        <h2>${svgWrap(ICON.target, 16)} What-if simulator</h2>
-        <span class="panel-meta">drag the sliders — the ANN re-predicts live</span>
-      </div>
-      <div class="ml-wi-body">
-        <div class="ml-wi-controls">
-          ${r.courses.length ? `
-          <label class="ml-wi-row">
-            <span>course</span>
-            <select class="field" id="ml-wi-course">
-              ${r.courses.map((c, i) => `<option value="${i}" ${i === wi.idx ? 'selected' : ''}>${esc(c.code)} — ${esc(c.name)}</option>`).join('')}
-            </select>
-          </label>` : ''}
-          <label class="ml-wi-row">
-            <span>attendance <b id="ml-wi-att-v">${wi.att}%</b></span>
-            <input type="range" min="40" max="100" step="1" value="${wi.att}" data-mlwi="att">
-          </label>
-          <label class="ml-wi-row">
-            <span>midterm <b id="ml-wi-mid-v">${wi.mid}/20</b></span>
-            <input type="range" min="0" max="20" step="1" value="${wi.mid}" data-mlwi="mid">
-          </label>
-          <label class="ml-wi-row">
-            <span>quizzes / assignments <b id="ml-wi-quiz-v">${wi.quiz}/10</b></span>
-            <input type="range" min="0" max="10" step="1" value="${wi.quiz}" data-mlwi="quiz">
-          </label>
+    <div class="container">
+      <div class="view-head">
+        <div>
+          <h1>ML/ANN Lab</h1>
+          <div class="view-sub">// predictions from your imported IULMS data · ${r.engine === 'vps' ? 'engine: VPS API (scikit-learn)' : 'engine: in-browser ANN'} · val MAE ${r.valMAE != null ? Number(r.valMAE).toFixed(3) : '—'} GP</div>
         </div>
-        <div class="ml-wi-out">
-          <div class="ml-wi-letter" id="ml-wi-letter">${wiInit.letter}</div>
-          <div class="ml-wi-gp" id="ml-wi-gp">${wiInit.gp.toFixed(2)} GP</div>
-          <div class="ml-wi-conf" id="ml-wi-conf">${wiInit.confidence}% confidence</div>
-          <span class="ml-risk ${wiDebar || wiInit.gp < 2 ? 'high' : (wiInit.gp < 2.4 ? 'watch' : 'safe')}" id="ml-wi-badge">
-            ${wiDebar ? 'DEBAR RISK (≤75% rule)' : (wiInit.gp < 2 ? 'FAIL RISK' : 'ON TRACK')}
-          </span>
+        <button class="btn btn-secondary btn-sm" data-action="ml-retrain">${svgWrap(ICON.refresh, 13)} Retrain</button>
+      </div>
+
+      <div class="ml-stats">
+        <div class="ml-stat">
+          <div class="ml-stat-label">${svgWrap(ICON.trend, 12)} predicted semester GPA</div>
+          <div class="ml-stat-value indigo">${r.sgpa != null ? r.sgpa.toFixed(2) : '—'}</div>
+          <div class="ml-stat-hint">${r.sgpa != null ? '± ' + r.sgpaStd.toFixed(2) + ' (ensemble σ)' : 'import courses first'}</div>
+        </div>
+        <div class="ml-stat">
+          <div class="ml-stat-label">${svgWrap(ICON.graduation, 12)} projected CGPA</div>
+          <div class="ml-stat-value">${r.projCgpa != null ? r.projCgpa.toFixed(2) : '—'}</div>
+          <div class="ml-stat-hint">${r.cgpa != null ? 'current ' + Number(r.cgpa).toFixed(2) + ' → after this semester' : 'needs transcript'}</div>
+        </div>
+        <div class="ml-stat">
+          <div class="ml-stat-label">${svgWrap(ICON.warning, 12)} courses at risk</div>
+          <div class="ml-stat-value ${r.riskCounts.high ? 'red' : ''}">${r.riskCounts.high}</div>
+          <div class="ml-stat-hint">${r.riskCounts.watch} on watch · ${r.riskCounts.safe} on track</div>
+        </div>
+        <div class="ml-stat">
+          <div class="ml-stat-label">${svgWrap(ICON.chip, 12)} model</div>
+          <div class="ml-stat-value" style="font-size:17px;letter-spacing:0">MLP ×5</div>
+          <div class="ml-stat-hint">8→16→10→1 · Adam · deep ensemble</div>
         </div>
       </div>
-    </div>
 
-    <div class="note" style="margin-top:14px">
-      <div class="note-tag">// model card</div>
-      <p><strong>Algorithm:</strong> feed-forward ANN (Multi-Layer Perceptron 8→16→10→1, tanh hidden units), trained with backpropagation + Adam, as a 5-network deep ensemble (bootstrap samples + random init) — the ensemble mean is the prediction and its spread gives the confidence score. Hard university rules (75% attendance debar) are enforced on top of the network. Explanations use occlusion sensitivity.</p>
-      <p style="margin-top:6px"><strong>Training data:</strong> synthetic, education-research-informed (1,400 samples) — <em>not</em> real IULMS records. Your real imported marks/attendance are the prediction inputs. Validation MAE on held-out data: <strong>${r.valMAE != null ? Number(r.valMAE).toFixed(3) : '—'} grade points</strong>. Real historical academic data (see <code>ml-backend/train.py --csv</code>) would improve accuracy.</p>
+      ${r.courses.length ? `<div class="ml-grid">${courseCards}</div>` : `
+        <div class="empty-state" style="margin-top:14px">
+          <div class="empty-tag">// no in-progress courses</div>
+          <h3>Import from IULMS to get personal predictions</h3>
+          <p>The engine is trained and ready — it just needs your current courses, midterm marks and attendance.</p>
+          <button class="btn btn-primary" data-action="open-import">${svgWrap(ICON.download, 14)} Import data</button>
+        </div>`}
+
+      <div class="panel ml-wi">
+        <div class="panel-head">
+          <h2>${svgWrap(ICON.target, 16)} What-if simulator</h2>
+          <span class="panel-meta">drag the sliders — the ANN re-predicts live</span>
+        </div>
+        <div class="ml-wi-body">
+          <div class="ml-wi-controls">
+            ${r.courses.length ? `
+            <label class="ml-wi-row">
+              <span>course</span>
+              <select class="field" id="ml-wi-course">
+                ${r.courses.map((c, i) => `<option value="${i}" ${i === wi.idx ? 'selected' : ''}>${esc(c.code)} — ${esc(c.name)}</option>`).join('')}
+              </select>
+            </label>` : ''}
+            <label class="ml-wi-row">
+              <span>attendance <b id="ml-wi-att-v">${wi.att}%</b></span>
+              <input type="range" min="40" max="100" step="1" value="${wi.att}" data-mlwi="att">
+            </label>
+            <label class="ml-wi-row">
+              <span>midterm <b id="ml-wi-mid-v">${wi.mid}/20</b></span>
+              <input type="range" min="0" max="20" step="1" value="${wi.mid}" data-mlwi="mid">
+            </label>
+            <label class="ml-wi-row">
+              <span>quizzes / assignments <b id="ml-wi-quiz-v">${wi.quiz}/10</b></span>
+              <input type="range" min="0" max="10" step="1" value="${wi.quiz}" data-mlwi="quiz">
+            </label>
+          </div>
+          <div class="ml-wi-out">
+            <div class="ml-wi-letter" id="ml-wi-letter">${wiInit.letter}</div>
+            <div class="ml-wi-gp" id="ml-wi-gp">${wiInit.gp.toFixed(2)} GP</div>
+            <div class="ml-wi-conf" id="ml-wi-conf">${wiInit.confidence}% confidence</div>
+            <span class="ml-risk ${wiDebar || wiInit.gp < 2 ? 'high' : (wiInit.gp < 2.4 ? 'watch' : 'safe')}" id="ml-wi-badge">
+              ${wiDebar ? 'DEBAR RISK (≤75% rule)' : (wiInit.gp < 2 ? 'FAIL RISK' : 'ON TRACK')}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:14px">
+        <div class="note-tag">// model card</div>
+        <p><strong>Algorithm:</strong> feed-forward ANN (Multi-Layer Perceptron 8→16→10→1, tanh hidden units), trained with backpropagation + Adam, as a 5-network deep ensemble (bootstrap samples + random init) — the ensemble mean is the prediction and its spread gives the confidence score. Hard university rules (75% attendance debar) are enforced on top of the network. Explanations use occlusion sensitivity.</p>
+        <p style="margin-top:6px"><strong>Training data:</strong> synthetic, education-research-informed (1,400 samples) — <em>not</em> real IULMS records. Your real imported marks/attendance are the prediction inputs. Validation MAE on held-out data: <strong>${r.valMAE != null ? Number(r.valMAE).toFixed(3) : '—'} grade points</strong>. Real historical academic data (see <code>ml-backend/train.py --csv</code>) would improve accuracy.</p>
+      </div>
     </div>
   `;
 }

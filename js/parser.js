@@ -463,13 +463,24 @@ function parseMidterms(rows) {
     const quizzes = !isNaN(quizRaw) && quizRaw >= 0 ? quizRaw : null;
     const project = !isNaN(projRaw) && projRaw >= 0 ? projRaw : null;
 
-    // Calculate percentage based on 20 max marks for midterm
-    let pct = null;
-    if (obtained !== null) {
-      pct = (obtained / 20) * 100;
+    // Determine the total midterm marks dynamically.
+    // Standard is 20, but some lab/practical exams are out of 50 or 100.
+    let total = 20;
+    if (obtained !== null && obtained > 20) {
+      if (obtained > 50) {
+        total = 100;
+      } else {
+        total = 50;
+      }
     }
 
-    return { code, name, total: 20, obtained, quizzes, project, percentage: pct, raw: cells };
+    // Calculate percentage based on dynamic max marks for midterm
+    let pct = null;
+    if (obtained !== null) {
+      pct = (obtained / total) * 100;
+    }
+
+    return { code, name, total, obtained, quizzes, project, percentage: pct, raw: cells };
   }).filter(Boolean);
 }
 
