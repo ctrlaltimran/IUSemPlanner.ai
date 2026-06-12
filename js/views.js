@@ -135,7 +135,7 @@ function renderLogin() {
       <div class="login-wrap">
 
         <div style="text-align:center;margin-bottom:16px;">
-          <div class="login-pill">v2.3 · AI for everyone · one-click IULMS import</div>
+          <div class="login-pill">v2.4 · AI for everyone · one-click IULMS import</div>
         </div>
 
         <div class="hero-split">
