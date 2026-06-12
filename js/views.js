@@ -135,7 +135,7 @@ function renderLogin() {
       <div class="login-wrap">
 
         <div style="text-align:center;margin-bottom:16px;">
-          <div class="login-pill">v2.4 · AI for everyone · one-click IULMS import</div>
+          <div class="login-pill">v2.4.1 · AI for everyone · one-click IULMS import</div>
         </div>
 
         <div class="hero-split">
@@ -400,7 +400,7 @@ function renderApp() {
         ${tabBtn('courses', 'Catalog', ICON.layers)}
         ${tabBtn('planner', 'Planner', ICON.target, false, plannedCount)}
         ${tabBtn('ai', 'AI Insights', ICON.brain, false)}
-        ${tabBtn('mllab', 'ML/ANN Lab', ICON.chip, false, 0, 'NEW')}
+        ${tabBtn('mllab', 'ML/ANN Predictions', ICON.chip, false, 0, 'NEW')}
       </div>
     </nav>
     ${state.importBanner ? `
@@ -1944,7 +1944,7 @@ function renderMLIdle(ml) {
     <div class="container">
       <div class="view-head">
         <div>
-          <h1>ML/ANN Lab</h1>
+          <h1>ML/ANN Predictions</h1>
           <div class="view-sub">// neural academic predictor · feed-forward ANN + deep ensemble</div>
         </div>
       </div>
@@ -1972,8 +1972,8 @@ function renderMLIdle(ml) {
         <button class="btn ml-init-btn" data-action="ml-init">${svgWrap(ICON.zap, 16)} Initialize Neural Engine</button>
         <div class="ml-hero-note">
           ${nCourses > 0
-        ? `${nCourses} in-progress course${nCourses === 1 ? '' : 's'} detected from your IULMS import — ready to predict.`
-        : `No in-progress courses imported yet — the engine will still train, and you can explore the what-if simulator. Import from IULMS for personal predictions.`}
+      ? `${nCourses} in-progress course${nCourses === 1 ? '' : 's'} detected from your IULMS import — ready to predict.`
+      : `No in-progress courses imported yet — the engine will still train, and you can explore the what-if simulator. Import from IULMS for personal predictions.`}
         </div>
         ${ml.error ? `<div class="ml-hero-note" style="color:#fca5a5">Last run failed: ${esc(ml.error)}</div>` : ''}
       </div>
@@ -2005,7 +2005,7 @@ function renderMLTraining(ml) {
     <div class="container">
       <div class="view-head">
         <div>
-          <h1>ML/ANN Lab</h1>
+          <h1>ML/ANN Predictions</h1>
           <div class="view-sub">// neural engine starting…</div>
         </div>
       </div>
@@ -2080,7 +2080,7 @@ function renderMLDashboard(ml) {
     <div class="container">
       <div class="view-head">
         <div>
-          <h1>ML/ANN Lab</h1>
+          <h1>ML/ANN Predictions</h1>
           <div class="view-sub">// predictions from your imported IULMS data · ${r.engine === 'vps' ? 'engine: VPS API (scikit-learn)' : 'engine: in-browser ANN'} · val MAE ${r.valMAE != null ? Number(r.valMAE).toFixed(3) : '—'} GP</div>
         </div>
         <button class="btn btn-secondary btn-sm" data-action="ml-retrain">${svgWrap(ICON.refresh, 13)} Retrain</button>
