@@ -41,6 +41,15 @@ const defaultState = {
   /* ── Courses (knowledge base) tab ── */
   libQuery: '',            /* search text */
   libOpen: null,           /* code of the currently expanded course */
+
+  /* ── ML/ANN Lab (UI-only, never persisted) ── */
+  ml: {
+    status: 'idle',        /* 'idle' | 'training' | 'ready' */
+    progress: 0, member: 0, members: 5, epoch: 0, epochs: 60,
+    losses: [], log: [], error: null,
+    results: null,         /* output of mlPredictAll() */
+    whatIf: { idx: 0, att: 85, mid: 14, quiz: 7 },
+  },
 };
 
 // Load saved data from browser storage
@@ -56,11 +65,12 @@ if (state.user) state.user.plan = 'pro';
 // Reset UI-only states on reload so modals don't get stuck open
 state.modal = null;
 state.uploadProcessing = false;
+state.ml = JSON.parse(JSON.stringify(defaultState.ml));
 state.authError = null;
 state.authLoading = false;
 state.aiChat = { messages: [], loading: false, error: null };
 /* If saved tab no longer exists in v2 (old "progress" was default), keep it. */
-if (!['dashboard', 'timetable', 'progress', 'transcript', 'courses', 'library', 'planner', 'ai'].includes(state.tab)) {
+if (!['dashboard', 'timetable', 'progress', 'transcript', 'courses', 'library', 'planner', 'ai', 'mllab'].includes(state.tab)) {
   state.tab = 'dashboard';
 }
 
@@ -440,6 +450,10 @@ document.addEventListener('click', (e) => {
       render();
       break;
 
+    case 'ml-init':
+    case 'ml-retrain':
+      runML();
+      break;
     case 'open-import':
       state.modal = 'import';
       state.uploadMode = 'bookmark';
@@ -987,3 +1001,99 @@ setInterval(() => {
     promoEl.src = PROMO_IMAGES[_currentPromoIdx];
   }
 }, 1000);
+
+/* ============================================================================
+   ML/ANN LAB — training orchestration + what-if simulator wiring
+   ========================================================================== */
+async function runML() {
+  state.tab = 'mllab';
+  state.ml = JSON.parse(JSON.stringify(defaultState.ml));
+  state.ml.status = 'training';
+  state.ml.log = [
+    '[boot]  initializing neural engine…',
+    '[data]  generating synthetic dataset — 1,400 samples · 8 features',
+    '[model] MLP 8 → 16 → 10 → 1 (tanh) · Adam optimizer · deep ensemble ×5',
+  ];
+  render();
+  iuspLog('ML: training started');
+  let lastRender = 0, loggedMember = 0;
+  try {
+    const res = await mlTrain((p) => {
+      state.ml.progress = p.progress;
+      state.ml.member = p.member; state.ml.members = p.members;
+      state.ml.epoch = p.epoch; state.ml.epochs = p.epochs;
+      state.ml.losses.push(p.loss);
+      if (p.member !== loggedMember) {
+        loggedMember = p.member;
+        state.ml.log.push('[train] network ' + p.member + '/' + p.members + ' — bootstrap sample, 60 epochs');
+      }
+      const now = Date.now();
+      if (now - lastRender > 150) { lastRender = now; if (state.tab === 'mllab') render(); }
+    });
+    state.ml.log.push('[eval]  validation MAE = ' + res.valMAE.toFixed(3) + ' grade points (held-out 250 samples)');
+    state.ml.log.push('[run]   predicting your in-progress courses from imported IULMS data…');
+    if (state.tab === 'mllab') render();
+    const results = await mlPredictAll(state);
+    state.ml.results = results;
+    if (results.courses.length) {
+      const f = results.courses[0].features;
+      state.ml.whatIf = { idx: 0, att: Math.round(f[3] * 100), mid: Math.round(f[0] * 20), quiz: Math.round(f[1] * 10) };
+    }
+    state.ml.status = 'ready';
+    iuspLog('ML: ready —', results.courses.length, 'courses predicted | engine =', results.engine, '| SGPA =', results.sgpa != null ? results.sgpa.toFixed(2) : 'n/a');
+  } catch (e) {
+    state.ml.status = 'idle';
+    state.ml.error = e.message;
+    iuspLog('ML: training failed —', e.message);
+  }
+  render();
+}
+
+/* what-if sliders: update predictions live WITHOUT a full re-render
+   (a full render would make the slider lose its drag) */
+function mlWhatIfRecompute() {
+  const r = state.ml.results;
+  if (!r || !MLEngine.trained) return;
+  const wi = state.ml.whatIf;
+  let base = (r.courses[wi.idx] && r.courses[wi.idx].features) || [0.7, 0.6, 0.5, 0.85, 0.65, 0.75, 0, 0.5];
+  const feat = base.slice();
+  feat[0] = Math.max(0, Math.min(1, wi.mid / 20));
+  feat[1] = Math.max(0, Math.min(1, wi.quiz / 10));
+  feat[3] = Math.max(0, Math.min(1, wi.att / 100));
+  const out = mlWhatIf(feat);
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('ml-wi-letter', out.letter);
+  set('ml-wi-gp', out.gp.toFixed(2) + ' GP');
+  set('ml-wi-conf', out.confidence + '% confidence');
+  set('ml-wi-att-v', wi.att + '%');
+  set('ml-wi-mid-v', wi.mid + '/20');
+  set('ml-wi-quiz-v', wi.quiz + '/10');
+  const badge = document.getElementById('ml-wi-badge');
+  if (badge) {
+    const debar = wi.att <= 75;
+    badge.textContent = debar ? 'DEBAR RISK (≤75% rule)' : (out.gp < 2 ? 'FAIL RISK' : 'ON TRACK');
+    badge.className = 'ml-risk ' + (debar || out.gp < 2 ? 'high' : (out.gp < 2.4 ? 'watch' : 'safe'));
+  }
+}
+
+document.addEventListener('input', (e) => {
+  const t = e.target;
+  if (!t || !t.dataset || !t.dataset.mlwi) return;
+  const v = parseFloat(t.value) || 0;
+  if (t.dataset.mlwi === 'att') state.ml.whatIf.att = v;
+  if (t.dataset.mlwi === 'mid') state.ml.whatIf.mid = v;
+  if (t.dataset.mlwi === 'quiz') state.ml.whatIf.quiz = v;
+  mlWhatIfRecompute();
+});
+
+document.addEventListener('change', (e) => {
+  const t = e.target;
+  if (!t || t.id !== 'ml-wi-course') return;
+  const idx = parseInt(t.value, 10) || 0;
+  const r = state.ml.results;
+  if (r && r.courses[idx]) {
+    const f = r.courses[idx].features;
+    state.ml.whatIf = { idx, att: Math.round(f[3] * 100), mid: Math.round(f[0] * 20), quiz: Math.round(f[1] * 10) };
+    render();
+  }
+});

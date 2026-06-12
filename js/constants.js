@@ -171,3 +171,6 @@ SE307-L	-	1	ARTIFICIAL INTELLIGENCE (LAB) (DE)	To be taken	In Progress
 	CSC483	-	3	DATA SCIENCE (DE)	B+	Already cleared
 	CS412	-	3	MACHINE LEARNING (DE)	To be taken	Course not Offered
 	CSC464	-	3	DEEP LEARNING (DE)	To be taken	Course not Offered`;
+
+/* ML/ANN Lab tab icon (CPU chip) */
+ICON.chip = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="14" height="14" rx="2"/><rect x="10" y="10" width="4" height="4"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg>';

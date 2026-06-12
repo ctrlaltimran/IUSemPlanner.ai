@@ -1,0 +1,17 @@
+# systemd unit for the IUSemPlanner ML/ANN API on a Hostinger VPS
+# Install:  sudo cp deploy/iusp-ml.service /etc/systemd/system/
+#           sudo systemctl daemon-reload && sudo systemctl enable --now iusp-ml
+[Unit]
+Description=IUSemPlanner ML/ANN prediction API
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/opt/iusp-ml
+Environment="IUSP_CORS=https://ctrlaltimran.com"
+ExecStart=/opt/iusp-ml/venv/bin/uvicorn app:app --host 0.0.0.0 --port 8800
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

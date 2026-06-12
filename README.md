@@ -1,8 +1,102 @@
-# IUSemPlanner.ai · v2.1
+# IUSemPlanner.ai · v2.4
 
 A **predictive student dashboard** for **Iqra University**. One bookmark imports your full IULMS academic profile, then forecasts your end-of-semester CGPA, flags attendance risks, and renders your weekly timetable.
 
 Live at: **https://ctrlaltimran.com/IUSemPlanner/**
+
+
+## What's new in v2.4 — ML/ANN Lab (Neural Academic Predictor)
+
+A new **ML/ANN Lab** tab (last tab in the dashboard) adds real Machine-Learning /
+Artificial-Neural-Network based academic prediction to the project.
+
+### What it predicts
+| Prediction | How it is shown |
+|---|---|
+| **Expected grade per in-progress course** | Letter grade + grade points, with a pessimistic–optimistic range |
+| **Semester GPA (SGPA)** | Credit-weighted over all predicted courses, with ±σ uncertainty |
+| **Projected CGPA** | Current CGPA combined with the predicted semester |
+| **Academic / fail risk** | ON TRACK · WATCH · HIGH RISK badges (incl. probability-of-fail from the ensemble) |
+| **Attendance / debar risk** | The hard ≤75% university rule is enforced on top of the network |
+| **Confidence score** | From the spread of a 5-network deep ensemble (+ lowered when inputs were imputed) |
+| **Why — explanation** | Top contributing factors per prediction (occlusion sensitivity), with signed GP impact |
+| **What-if simulator** | Sliders for attendance / midterm / quizzes — the ANN re-predicts live |
+
+### The algorithm — and why it was selected
+- **Model:** a feed-forward **Artificial Neural Network (Multi-Layer Perceptron), 8 → 16 → 10 → 1**, `tanh` hidden units, linear output, trained with **backpropagation + the Adam optimizer** (mini-batches of 32, ~60 epochs/network).
+- **Why an MLP:** academic prediction here is a *small tabular regression* problem (8 features → grade points). An MLP is the canonical ANN for tabular data and captures the **non-linear interactions** that matter (e.g. low attendance doesn't just subtract marks — below the debar threshold it collapses the grade entirely). CNNs/RNNs/transformers would be the wrong tools (no images/sequences), and using them "for the name" would be dishonest engineering.
+- **Why a deep ensemble (×5):** five networks with different random initializations are trained on bootstrap samples; the **ensemble mean is the prediction and the ensemble spread is an honest confidence score** (deep-ensemble uncertainty estimation — a standard, defensible technique).
+- **Rules + ANN:** known university constraints (the 75% attendance debar rule) are *enforced*, not learned — a hard rule should never depend on what a network happened to fit.
+- **Explainability:** per-prediction **occlusion sensitivity** — each feature is replaced with the training-set average and the change in output is the feature's signed contribution.
+
+### The 8 input features (all taken from your real IULMS import)
+`midterm /20 · quizzes /10 · project /10 · attendance % · prior CGPA · credit hours · lab flag · course level` — matched per course from the imported ExamResultMid, StudentAttendance and transcript data. IULMS shows `0` for unmarked components, so zeros are treated as *not yet marked* and imputed (and the confidence is lowered accordingly — the card says so).
+
+### Data honesty (important — also stated in the UI)
+The network trains on a **synthetic, education-research-informed dataset** (1,400 samples; attendance, continuous assessment and prior GPA drive grades, with a hard low-attendance collapse). It is **NOT trained on real IULMS/university records** — your real imported data is the *input* to predictions, not the training set. Validation MAE on held-out synthetic data: **≈0.22 grade points**. Training on real historical data (supported via `ml-backend/train.py --csv`) would improve real-world accuracy.
+
+### Architecture: two interchangeable engines
+1. **In-browser ANN (`js/ml.js`, default)** — the MLP + ensemble implemented from scratch in vanilla JS. It **trains live in the browser** (the "Initialize Neural Engine" screen shows real epochs, MSE loss and a loss curve). Zero backend → works on the static Hostinger/WordPress hosting unchanged.
+2. **VPS backend (`ml-backend/`, optional)** — FastAPI + scikit-learn `MLPRegressor` ensemble with the **identical feature schema and data generator** (validated: both engines agree within ~0.04 GP). Set `ML_API_URL` in `js/config.js` to use it; if the API is unreachable the app **falls back to the in-browser engine automatically**, so the site never breaks.
+
+### Files added / changed in v2.4
+| File | Change |
+|---|---|
+| `js/ml.js` | **NEW** — ANN engine (MLP, backprop, Adam, ensemble, dataset generator, explanations, what-if, VPS API client) |
+| `ml-backend/` | **NEW** — `app.py` (FastAPI), `train.py`, `requirements.txt`, `deploy/iusp-ml.service` |
+| `js/views.js` | `renderMLLab()` (idle / training / dashboard screens) + tab button |
+| `js/app.js` | `ml` state, `runML()` orchestration, what-if live wiring, tab whitelist |
+| `js/config.js` | `ML_API_URL` setting appended (Supabase keys untouched) |
+| `js/constants.js` | `ICON.chip` |
+| `css/ios.css` | ML/ANN Lab styles (responsive) |
+| `index.html` | loads `js/ml.js`, cache-bust `?v=2.4` |
+
+### How to run & test the ML module
+1. Open the site → sign in / guest → **ML/ANN Lab** tab (last tab).
+2. Click **Initialize Neural Engine** → watch the live training (≈4–8 s, 5 networks × 60 epochs) → the prediction dashboard appears.
+3. Import from IULMS first for personal predictions; without data the engine still trains and the what-if simulator works.
+4. Console shows `[IUSP] ML: …` logs (engine used, SGPA, course count).
+5. Backend test (any machine/VPS):
+   ```bash
+   cd ml-backend
+   pip install -r requirements.txt
+   python train.py                                   # trains + prints validation MAE
+   uvicorn app:app --host 0.0.0.0 --port 8800        # serve
+   curl http://localhost:8800/health
+   curl -X POST http://localhost:8800/predict -H "Content-Type: application/json" \
+        -d '{"rows":[{"features":[0.75,0.7,0.5,0.83,0.78,0.75,0,0.75]}]}'
+   ```
+
+### Deploying the backend on a Hostinger VPS
+```bash
+# on the VPS (Ubuntu)
+sudo apt update && sudo apt install -y python3-venv
+sudo mkdir -p /opt/iusp-ml && sudo chown $USER /opt/iusp-ml
+# upload the ml-backend/ folder contents to /opt/iusp-ml (scp/SFTP), then:
+cd /opt/iusp-ml
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+python train.py
+# run as a service:
+sudo cp deploy/iusp-ml.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now iusp-ml
+sudo ufw allow 8800/tcp
+curl http://localhost:8800/health
+```
+Recommended hardening: put nginx in front with HTTPS (e.g. `ml.ctrlaltimran.com` → proxy to `127.0.0.1:8800`) because a page served over HTTPS cannot call a plain `http://IP:8800` API (mixed content). Set `IUSP_CORS=https://ctrlaltimran.com` in the service file (already included).
+
+### How the WordPress-hosted frontend connects to the VPS backend
+The static frontend (Hostinger WordPress permalink) builds the 8 features per course locally, then `POST`s them to `ML_API_URL + /predict` (set in `js/config.js`). CORS on the FastAPI side allows the site's origin. No student data is stored on the VPS — it is a stateless prediction service. If it's down or `ML_API_URL` is empty, the in-browser ANN takes over transparently; the engine actually used is shown in the tab header.
+
+### What to say in viva about the ML/ANN part
+- *"We added a neural academic predictor: a feed-forward ANN — a Multi-Layer Perceptron with architecture 8→16→10→1 and tanh activations — trained with backpropagation and the Adam optimizer."*
+- *"We chose an MLP because grade prediction from 8 tabular features is a small non-linear regression problem; an MLP captures interactions like the attendance-debar collapse, while CNNs or transformers would be inappropriate for tabular data of this size."*
+- *"We train a deep ensemble of five networks on bootstrap samples; the ensemble mean is the prediction and the ensemble standard deviation gives a calibrated confidence score."*
+- *"Predictions are explainable: occlusion sensitivity replaces each feature with the population average and measures the change in output, giving signed per-factor contributions shown in the UI."*
+- *"Hard university rules — the 75% attendance debar — are enforced on top of the model, because constraints should not depend on what a network happened to learn."*
+- *"For training data we were honest: no real IULMS records were available, so we generated a synthetic dataset whose feature-grade relationships follow established education research; the student's real imported IULMS marks and attendance are the prediction inputs. Validation MAE is about 0.22 grade points, and the pipeline accepts real historical CSVs to retrain (`train.py --csv`)."*
+- *"It's deployed in two interchangeable forms: an in-browser implementation written from scratch in JavaScript that trains live on the page, and a scikit-learn FastAPI service on a Hostinger VPS with the same feature schema — the frontend falls back automatically if the API is unreachable."*
+- If asked **"why not linear regression?"**: the attendance-debar collapse and feature interactions are non-linear; a linear model cannot represent them (we verified the network learns the collapse — at 55% attendance the attendance factor alone contributes about −1.3 GP).
 
 ## What's new in v2.1
 

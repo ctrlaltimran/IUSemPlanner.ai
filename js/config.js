@@ -33,3 +33,12 @@ window.isSupabaseConfigured = function () {
     && !c.SUPABASE_URL.includes('YOUR_')
     && !c.SUPABASE_ANON_KEY.includes('YOUR_');
 };
+
+/* ── ML/ANN Lab backend (optional) ──
+   Leave empty ('') to use the in-browser neural engine (default — works on
+   static Hostinger hosting with no server). When the Python backend in
+   ml-backend/ is deployed on your Hostinger VPS, put its base URL here,
+   e.g. 'https://ml.ctrlaltimran.com' or 'http://YOUR_VPS_IP:8800'.
+   If the API is unreachable the app automatically falls back to the
+   in-browser engine, so the site never breaks. */
+const ML_API_URL = '';
