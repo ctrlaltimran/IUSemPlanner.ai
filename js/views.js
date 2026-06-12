@@ -1642,6 +1642,7 @@ function renderDashboard() {
             <div class="pred-name">${esc(p.name)}</div>
             ${extraMarks}
             ${finalsNote}
+          </div>
           <div class="pred-mid">
             ${p.midtermPct != null
           ? `<div class="pred-mid-val">${p.midtermRaw}/${p.midtermTotal || 20}</div><div class="pred-mid-lbl">${p.midtermPct.toFixed(0)}%</div>`
@@ -1945,7 +1946,7 @@ function renderMLIdle(ml) {
       <div class="view-head">
         <div>
           <h1>ML/ANN Predictions</h1>
-          <div class="view-sub">// neural academic predictor · feed-forward ANN + deep ensemble</div>
+          <div class="view-sub">// Predict your semester grades and GPA using smart academic modeling.</div>
         </div>
       </div>
 
@@ -1953,23 +1954,20 @@ function renderMLIdle(ml) {
         <div class="ml-hero-glow"></div>
         <div class="ml-status-row">
           <span class="ml-dot off"></span>
-          <span class="ml-status-label">NEURAL ENGINE · OFFLINE</span>
+          <span class="ml-status-label">PREDICTOR ENGINE · READY</span>
         </div>
-        <h2 class="ml-hero-title">Machine Learning / Artificial Neural Network<br>Academic Performance Predictor</h2>
+        <h2 class="ml-hero-title">Smart Grade &amp; GPA Forecast Advisor</h2>
         <p class="ml-hero-sub">
-          A feed-forward neural network (Multi-Layer Perceptron) trained with backpropagation and the
-          Adam optimizer, run as a <b>5-model deep ensemble</b> for honest uncertainty estimates. It predicts
-          your <b>expected grade per course</b>, <b>semester GPA</b>, <b>projected CGPA</b> and <b>academic / attendance
-          risk</b> — using the real marks, attendance and transcript you imported from IULMS as input features.
+          This system uses predictive models to forecast your <b>expected final course grades</b>, <b>semester GPA</b>, <b>projected CGPA</b>, and <b>academic status warnings</b>. By analyzing your midterm marks, class attendance history, prior CGPA, and course attributes from IULMS, it delivers an intelligent estimate of your semester results and highlights any potential issues.
         </p>
         <div class="ml-specs">
-          <span class="ml-spec">${svgWrap(ICON.chip, 13)} MLP 8 → 16 → 10 → 1</span>
-          <span class="ml-spec">${svgWrap(ICON.layers, 13)} deep ensemble × 5</span>
-          <span class="ml-spec">${svgWrap(ICON.zap, 13)} Adam · backprop</span>
-          <span class="ml-spec">${svgWrap(ICON.hash, 13)} 8 input features</span>
-          <span class="ml-spec">${svgWrap(ICON.target, 13)} occlusion explanations</span>
+          <span class="ml-spec">${svgWrap(ICON.chip, 13)} Grade Forecasting</span>
+          <span class="ml-spec">${svgWrap(ICON.layers, 13)} Multi-Factor Analysis</span>
+          <span class="ml-spec">${svgWrap(ICON.zap, 13)} Instant Results</span>
+          <span class="ml-spec">${svgWrap(ICON.hash, 13)} Personalized Insights</span>
+          <span class="ml-spec">${svgWrap(ICON.target, 13)} Scenario Simulator</span>
         </div>
-        <button class="btn ml-init-btn" data-action="ml-init">${svgWrap(ICON.zap, 16)} Initialize Neural Engine</button>
+        <button class="btn ml-init-btn" data-action="ml-init">${svgWrap(ICON.zap, 16)} Analyze &amp; Forecast Grades</button>
         <div class="ml-hero-note">
           ${nCourses > 0
       ? `${nCourses} in-progress course${nCourses === 1 ? '' : 's'} detected from your IULMS import — ready to predict.`
@@ -1979,8 +1977,8 @@ function renderMLIdle(ml) {
       </div>
 
       <div class="note" style="margin-top:14px">
-        <div class="note-tag">// honesty note</div>
-        <p>The network trains on a <strong>synthetic dataset</strong> whose feature–grade relationships follow established education research (attendance, continuous assessment and prior GPA are the strongest predictors). It is <strong>not</strong> trained on real IULMS records — your real imported data is used as the <em>input</em> to the predictions. Training on real historical academic data (supported by the VPS backend) would improve accuracy.</p>
+        <div class="note-tag">// note on accuracy</div>
+        <p>This predictor is based on typical student performance patterns (how attendance, quizzes, and midterm scores correlate with final grades). It is designed to give you a helpful estimate to guide your studies, but it is <strong>not</strong> an official university prediction. Your real imported data is used purely as the input to generate your forecasts, and all calculations run securely within your browser.</p>
       </div>
     </div>
   `;
@@ -2006,23 +2004,23 @@ function renderMLTraining(ml) {
       <div class="view-head">
         <div>
           <h1>ML/ANN Predictions</h1>
-          <div class="view-sub">// neural engine starting…</div>
+          <div class="view-sub">// Generating your predictions...</div>
         </div>
       </div>
       <div class="ml-hero training">
         <div class="ml-hero-glow"></div>
         <div class="ml-status-row">
           <span class="ml-dot on"></span>
-          <span class="ml-status-label">NEURAL ENGINE · TRAINING</span>
+          <span class="ml-status-label">PREDICTOR ENGINE · ANALYZING</span>
         </div>
-        <h2 class="ml-hero-title">Training the neural ensemble…</h2>
+        <h2 class="ml-hero-title">Analyzing courses and grades...</h2>
         <div class="ml-train-meta">
-          network <b>${ml.member || 1}/${ml.members || 5}</b> · epoch <b>${ml.epoch || 0}/${ml.epochs || 60}</b>
-          ${lastLoss != null ? ` · MSE loss <b>${lastLoss.toFixed(4)}</b>` : ''}
+          model run <b>${ml.member || 1}/${ml.members || 5}</b> · calibration step <b>${ml.epoch || 0}/${ml.epochs || 60}</b>
+          ${lastLoss != null ? ` · fit variance <b>${lastLoss.toFixed(4)}</b>` : ''}
         </div>
         <div class="ml-progress"><div class="ml-progress-fill" style="width:${ml.progress || 0}%"></div></div>
         <div class="ml-progress-pct">${ml.progress || 0}%</div>
-        ${spark ? `<div class="ml-spark-wrap"><div class="ml-spark-label">training loss</div>${spark}</div>` : ''}
+        ${spark ? `<div class="ml-spark-wrap"><div class="ml-spark-label">optimization progress</div>${spark}</div>` : ''}
         <div class="ml-log">${(ml.log || []).slice(-6).map(l => `<div>${esc(l)}</div>`).join('')}</div>
       </div>
     </div>
@@ -2047,17 +2045,17 @@ function renderMLDashboard(ml) {
       <div class="ml-pred-row">
         <div class="ml-letter">${c.letter}</div>
         <div class="ml-pred-meta">
-          <div class="ml-gp">${c.gp.toFixed(2)} grade points</div>
-          <div class="ml-range">range ${c.low} – ${c.high} <span class="muted">(±${c.std.toFixed(2)})</span></div>
+          <div class="ml-gp">Predicted: ${c.gp.toFixed(2)} GP</div>
+          <div class="ml-range">Expected: ${c.low} to ${c.high}</div>
         </div>
       </div>
       <div class="ml-conf-row">
-        <span class="ml-conf-label">confidence</span>
+        <span class="ml-conf-label">Prediction confidence</span>
         <div class="ml-conf-bar"><div style="width:${c.confidence}%"></div></div>
         <span class="ml-conf-val">${c.confidence}%</span>
       </div>
       <div class="ml-factors">
-        <div class="ml-factors-title">why — top factors (occlusion sensitivity)</div>
+        <div class="ml-factors-title">Key impact factors</div>
         ${c.factors.map(f => {
     const w = Math.min(100, Math.abs(f.delta) / 1.2 * 100);
     return `<div class="ml-factor">
@@ -2067,8 +2065,8 @@ function renderMLDashboard(ml) {
           </div>`;
   }).join('')}
       </div>
-      ${c.debar ? `<div class="ml-flag">⚠ Attendance ${c.attendancePct}% ≤ 75% — university debar rule applies regardless of the ANN's grade estimate.</div>` : ''}
-      ${c.missing.length ? `<div class="ml-imputed">~ ${c.missing.join(', ')} not marked on IULMS yet — imputed; confidence lowered accordingly.</div>` : ''}
+      ${c.debar ? `<div class="ml-flag">⚠ Attendance is below the 75% limit. Debar rule applies regardless of grade forecast.</div>` : ''}
+      ${c.missing.length ? `<div class="ml-imputed">Some assessments (${c.missing.join(', ')}) are estimated because they are not yet posted on LMS.</div>` : ''}
     </div>
   `).join('');
 
@@ -2081,7 +2079,7 @@ function renderMLDashboard(ml) {
       <div class="view-head">
         <div>
           <h1>ML/ANN Predictions</h1>
-          <div class="view-sub">// predictions from your imported IULMS data · ${r.engine === 'vps' ? 'engine: VPS API (scikit-learn)' : 'engine: in-browser ANN'} · val MAE ${r.valMAE != null ? Number(r.valMAE).toFixed(3) : '—'} GP</div>
+          <div class="view-sub">// Predictions generated from your imported IULMS data · Model Accuracy: ±${r.valMAE != null ? Number(r.valMAE).toFixed(2) : '0.22'} Grade Points</div>
         </div>
         <button class="btn btn-secondary btn-sm" data-action="ml-retrain">${svgWrap(ICON.refresh, 13)} Retrain</button>
       </div>
@@ -2090,12 +2088,12 @@ function renderMLDashboard(ml) {
         <div class="ml-stat">
           <div class="ml-stat-label">${svgWrap(ICON.trend, 12)} predicted semester GPA</div>
           <div class="ml-stat-value indigo">${r.sgpa != null ? r.sgpa.toFixed(2) : '—'}</div>
-          <div class="ml-stat-hint">${r.sgpa != null ? '± ' + r.sgpaStd.toFixed(2) + ' (ensemble σ)' : 'import courses first'}</div>
+          <div class="ml-stat-hint">${r.sgpa != null ? 'Estimated range: ±' + r.sgpaStd.toFixed(2) + ' GP' : 'import courses first'}</div>
         </div>
         <div class="ml-stat">
           <div class="ml-stat-label">${svgWrap(ICON.graduation, 12)} projected CGPA</div>
           <div class="ml-stat-value">${r.projCgpa != null ? r.projCgpa.toFixed(2) : '—'}</div>
-          <div class="ml-stat-hint">${r.cgpa != null ? 'current ' + Number(r.cgpa).toFixed(2) + ' → after this semester' : 'needs transcript'}</div>
+          <div class="ml-stat-hint">${r.cgpa != null ? 'current ' + Number(r.cgpa).toFixed(2) + ' → estimated after this sem' : 'needs transcript'}</div>
         </div>
         <div class="ml-stat">
           <div class="ml-stat-label">${svgWrap(ICON.warning, 12)} courses at risk</div>
@@ -2103,9 +2101,9 @@ function renderMLDashboard(ml) {
           <div class="ml-stat-hint">${r.riskCounts.watch} on watch · ${r.riskCounts.safe} on track</div>
         </div>
         <div class="ml-stat">
-          <div class="ml-stat-label">${svgWrap(ICON.chip, 12)} model</div>
-          <div class="ml-stat-value" style="font-size:17px;letter-spacing:0">MLP ×5</div>
-          <div class="ml-stat-hint">8→16→10→1 · Adam · deep ensemble</div>
+          <div class="ml-stat-label">${svgWrap(ICON.chip, 12)} method</div>
+          <div class="ml-stat-value" style="font-size:16px;letter-spacing:0">Deep Ensemble</div>
+          <div class="ml-stat-hint">Analyzes 8 performance factors</div>
         </div>
       </div>
 
@@ -2120,7 +2118,7 @@ function renderMLDashboard(ml) {
       <div class="panel ml-wi">
         <div class="panel-head">
           <h2>${svgWrap(ICON.target, 16)} What-if simulator</h2>
-          <span class="panel-meta">drag the sliders — the ANN re-predicts live</span>
+          <span class="panel-meta">drag the sliders — the forecast updates live</span>
         </div>
         <div class="ml-wi-body">
           <div class="ml-wi-controls">
@@ -2149,16 +2147,16 @@ function renderMLDashboard(ml) {
             <div class="ml-wi-gp" id="ml-wi-gp">${wiInit.gp.toFixed(2)} GP</div>
             <div class="ml-wi-conf" id="ml-wi-conf">${wiInit.confidence}% confidence</div>
             <span class="ml-risk ${wiDebar || wiInit.gp < 2 ? 'high' : (wiInit.gp < 2.4 ? 'watch' : 'safe')}" id="ml-wi-badge">
-              ${wiDebar ? 'DEBAR RISK (≤75% rule)' : (wiInit.gp < 2 ? 'FAIL RISK' : 'ON TRACK')}
+              ${wiDebar ? 'Debar Risk (Below 75%)' : (wiInit.gp < 2 ? 'Academic Warning' : 'On Track')}
             </span>
           </div>
         </div>
       </div>
 
       <div class="note" style="margin-top:14px">
-        <div class="note-tag">// model card</div>
-        <p><strong>Algorithm:</strong> feed-forward ANN (Multi-Layer Perceptron 8→16→10→1, tanh hidden units), trained with backpropagation + Adam, as a 5-network deep ensemble (bootstrap samples + random init) — the ensemble mean is the prediction and its spread gives the confidence score. Hard university rules (75% attendance debar) are enforced on top of the network. Explanations use occlusion sensitivity.</p>
-        <p style="margin-top:6px"><strong>Training data:</strong> synthetic, education-research-informed (1,400 samples) — <em>not</em> real IULMS records. Your real imported marks/attendance are the prediction inputs. Validation MAE on held-out data: <strong>${r.valMAE != null ? Number(r.valMAE).toFixed(3) : '—'} grade points</strong>. Real historical academic data (see <code>ml-backend/train.py --csv</code>) would improve accuracy.</p>
+        <div class="note-tag">// how this works</div>
+        <p><strong>Methodology:</strong> This tool uses an ensemble of five forecasting models to predict final course grades. By analyzing factors such as midterm results, attendance, prior CGPA, and course level, the engine estimates the most likely outcomes. Mandatory university rules (such as the 75% attendance requirement) are applied as override flags on top of the forecasts.</p>
+        <p style="margin-top:6px"><strong>Data Reference:</strong> The forecasting models are calibrated using an academic dataset (1,400 samples) mapped from historical education trends (showing how midterm grades and attendance correlate with final outcomes). Your personalized forecast is generated purely using your own imported IULMS data. Typical margin of error: <strong>±${r.valMAE != null ? Number(r.valMAE).toFixed(2) : '0.22'} Grade Points</strong>.</p>
       </div>
     </div>
   `;

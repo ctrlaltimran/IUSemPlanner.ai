@@ -1010,9 +1010,9 @@ async function runML() {
   state.ml = JSON.parse(JSON.stringify(defaultState.ml));
   state.ml.status = 'training';
   state.ml.log = [
-    '[boot]  initializing neural engine…',
-    '[data]  generating synthetic dataset — 1,400 samples · 8 features',
-    '[model] MLP 8 → 16 → 10 → 1 (tanh) · Adam optimizer · deep ensemble ×5',
+    '[system]  starting predictive engine…',
+    '[data]    preparing synthetic dataset (1,400 samples)...',
+    '[model]   configuring multi-factor ensemble (5 forecast runs)...',
   ];
   render();
   iuspLog('ML: training started');
@@ -1025,13 +1025,13 @@ async function runML() {
       state.ml.losses.push(p.loss);
       if (p.member !== loggedMember) {
         loggedMember = p.member;
-        state.ml.log.push('[train] network ' + p.member + '/' + p.members + ' — bootstrap sample, 60 epochs');
+        state.ml.log.push('[train]   calibrating forecasting model ' + p.member + ' of ' + p.members + '...');
       }
       const now = Date.now();
       if (now - lastRender > 150) { lastRender = now; if (state.tab === 'mllab') render(); }
     });
-    state.ml.log.push('[eval]  validation MAE = ' + res.valMAE.toFixed(3) + ' grade points (held-out 250 samples)');
-    state.ml.log.push('[run]   predicting your in-progress courses from imported IULMS data…');
+    state.ml.log.push('[eval]    calibration complete (margin of error: ±' + res.valMAE.toFixed(2) + ' GP)');
+    state.ml.log.push('[run]     generating grade forecasts for your in-progress courses…');
     if (state.tab === 'mllab') render();
     const results = await mlPredictAll(state);
     state.ml.results = results;
