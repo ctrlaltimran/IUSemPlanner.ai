@@ -1509,7 +1509,7 @@ body.view-home #site-footer {
   border-radius: 22px; padding: 34px 36px; margin-top: 4px;
   color: #fff;
   background: linear-gradient(135deg, #1e1b4b 0%, #312e81 55%, #4338ca 100%);
-  box-shadow: 0 24px 60px -24px rgba(67, 56, 202, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 .ml-hero-glow {
   position: absolute; inset: 0; z-index: -1; pointer-events: none;
@@ -1531,16 +1531,15 @@ body.view-home #site-footer {
   display: inline-flex; align-items: center; gap: 6px;
   font-family: var(--font-mono, ui-monospace, monospace); font-size: 11.5px; font-weight: 600;
   padding: 7px 12px; border-radius: 999px;
-  background: rgba(255, 255, 255, 0.10); border: 1px solid rgba(255, 255, 255, 0.18); color: #e0e7ff;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12); color: #e0e7ff;
 }
 .ml-init-btn {
   display: inline-flex; align-items: center; gap: 8px;
   background: #fff; color: #3730a3; font-weight: 800; font-size: 15px;
-  padding: 13px 26px; border-radius: 999px; border: none; cursor: pointer;
-  box-shadow: 0 10px 28px -10px rgba(0, 0, 0, 0.45);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  padding: 13px 26px; border-radius: 999px; border: 1px solid rgba(0, 0, 0, 0.08); cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease;
 }
-.ml-init-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.55); }
+.ml-init-btn:hover { transform: translateY(-1px); background-color: #f8fafc; }
 .ml-hero-note { margin-top: 14px; font-size: 12.5px; color: rgba(255, 255, 255, 0.78); font-family: var(--font-mono, ui-monospace, monospace); }
 
 /* training */
@@ -1556,7 +1555,7 @@ body.view-home #site-footer {
 
 /* stats row */
 .ml-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; }
-.ml-stat { background: var(--surface, #fff); border: 1px solid var(--border, #e5e7eb); border-radius: 16px; padding: 16px 18px; box-shadow: var(--ios-shadow-sm, 0 1px 3px rgba(0,0,0,0.05)); }
+.ml-stat { background: var(--surface, #fff); border: 1px solid var(--border, #e5e7eb); border-radius: 16px; padding: 16px 18px; }
 .ml-stat-label { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted, #6b7280); margin-bottom: 8px; }
 .ml-stat-value { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; color: var(--text, #111827); }
 .ml-stat-value.indigo { color: #4f46e5; }
@@ -1565,7 +1564,7 @@ body.view-home #site-footer {
 
 /* course prediction cards */
 .ml-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }
-.ml-course { background: var(--surface, #fff); border: 1px solid var(--border, #e5e7eb); border-radius: 18px; padding: 18px 20px; box-shadow: var(--ios-shadow-sm, 0 1px 3px rgba(0,0,0,0.05)); }
+.ml-course { background: var(--surface, #fff); border: 1px solid var(--border, #e5e7eb); border-radius: 18px; padding: 18px 20px; }
 .ml-course-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
 .ml-course-code { font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; font-weight: 700; color: #4f46e5; }
 .ml-course-name { font-size: 14px; font-weight: 700; color: var(--text, #111827); margin-top: 2px; }
