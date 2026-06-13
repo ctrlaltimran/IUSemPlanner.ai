@@ -1603,17 +1603,17 @@ function renderDashboard() {
     const methodologyCard = `
       <div class="prediction-info-card" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%); border: 1px solid rgba(99, 102, 241, 0.15); border-radius: var(--radius); padding: 18px; margin: 12px 14px; position: relative; overflow: hidden;">
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-          <span style="display:inline-flex; background:var(--accent); color:#fff; border-radius:50%; width:22px; height:22px; align-items:center; justify-content:center; font-size:12px;">🧠</span>
+          <span style="display:inline-flex; background:var(--accent); color:#fff; border-radius:50%; width:22px; height:22px; align-items:center; justify-content:center;">${svgWrap(ICON.brain, 12)}</span>
           <h4 style="margin:0; font-size:14px; font-weight:700; color:var(--text); font-family:var(--font-mono);">Predictive Grade & CGPA Logic</h4>
         </div>
         <p style="margin:0 0 10px 0; font-size:12px; color:var(--text-muted); line-height:1.6;">
-          To forecast your end-of-semester GPA and grades, our models analyze both historical and current academic indicators. If components (like midterms or assignments) are not yet uploaded, the engine utilizes your historical transcript performance in related course categories as a strong prior indicator.
+          Forecasts use active midterm scores and class attendance. If marks aren't uploaded yet, predictions automatically leverage your historical transcript performance in related subject areas.
         </p>
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; font-size:11px;">
-          <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);"><span style="font-size:12px;">📂</span> <strong>Transcript:</strong> Prior CGPA & related course average</div>
-          <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);"><span style="font-size:12px;">📈</span> <strong>Progress:</strong> Historical trend & performance baseline</div>
-          <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);"><span style="font-size:12px;">📝</span> <strong>Current Marks:</strong> Active midterm & quizzes/projects</div>
-          <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);"><span style="font-size:12px;">🤖</span> <strong>ML/ANN Calibration:</strong> Multi-factor category weightings</div>
+          <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);">${svgWrap(ICON.file, 12)} <strong>Transcript:</strong> Prior CGPA & related course average</div>
+          <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);">${svgWrap(ICON.trend, 12)} <strong>Progress:</strong> Historical trend & baseline</div>
+          <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);">${svgWrap(ICON.zap, 12)} <strong>Current Marks:</strong> Active midterm & quizzes/projects</div>
+          <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);">${svgWrap(ICON.chip, 12)} <strong>ML/ANN Calibration:</strong> Multi-factor category weightings</div>
         </div>
       </div>
     `;
@@ -1621,7 +1621,7 @@ function renderDashboard() {
     const courseRows = prediction.semesterPredictions.map(p => {
       let currentMarks = p.midtermRaw || 0;
       let remainingPool = 80; // 100 total - 20 midterm
-
+      
       const tagPending = `<span class="badge-pending" style="font-size:10px; font-weight:600; color:#d97706; background:#fffbeb; padding:2px 6px; border-radius:4px; border:1px solid #fde68a; font-family:var(--font-mono); display:inline-block; line-height:1; vertical-align:middle; margin-left:4px;">Not uploaded yet</span>`;
 
       // 1. Midterm Component
@@ -1645,9 +1645,9 @@ function renderDashboard() {
 
       const componentMarks = `
         <div class="component-marks-list" style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--text-muted);">
-          <div>📝 Midterm (20m): ${midHtml}</div>
-          <div>📊 Assessments (40m): ${assHtml}</div>
-          <div>🏁 Final Exam (40m): ${tagPending}</div>
+          <div>${svgWrap(ICON.calendar, 12)} Midterm (20m): ${midHtml}</div>
+          <div>${svgWrap(ICON.layers, 12)} Assessments (40m): ${assHtml}</div>
+          <div>${svgWrap(ICON.target, 12)} Final Exam (40m): ${tagPending}</div>
         </div>
       `;
 
@@ -1659,9 +1659,9 @@ function renderDashboard() {
           const neededForExpected = Math.max(0, band.min - currentMarks);
 
           if (neededForExpected <= 0) {
-            finalsNote = `<div style="font-size:11px; color:#10b981; margin-top:6px; font-weight:600;">✨ Secured a ${p.expected} already!</div>`;
+            finalsNote = `<div style="font-size:11px; color:#10b981; margin-top:6px; font-weight:600; display:flex; align-items:center; gap:4px;">${svgWrap(ICON.spark, 12)} Secured a ${p.expected} already!</div>`;
           } else if (remainingPool === 40) {
-            finalsNote = `<div style="font-size:11px; color:#d97706; margin-top:6px; font-weight:600; background:rgba(217,119,6,0.06); padding:4px 8px; border-radius:6px; display:inline-block; border:1px solid rgba(217,119,6,0.15);">${p.isMidtermUploaded ? `🎯 Need <strong>${neededForExpected}</strong>/40 on Final for a ${p.expected}` : `🎯 Est. final target: <strong>${neededForExpected}</strong>/40 for a ${p.expected}`}</div>`;
+            finalsNote = `<div style="font-size:11px; color:#d97706; margin-top:6px; font-weight:600; background:rgba(217,119,6,0.06); padding:4px 8px; border-radius:6px; display:inline-flex; align-items:center; gap:4px; border:1px solid rgba(217,119,6,0.15);">${svgWrap(ICON.target, 12)} ${p.isMidtermUploaded ? `Need <strong>${neededForExpected}</strong>/40 on Final for a ${p.expected}` : `Est. final target: <strong>${neededForExpected}</strong>/40 for a ${p.expected}`}</div>`;
           } else {
             finalsNote = `<div style="font-size:11px; color:var(--accent); margin-top:6px; font-weight:500;">Need ${neededForExpected} more marks (out of ${remainingPool} remaining) for a ${p.expected}</div>`;
           }
@@ -2070,17 +2070,17 @@ function renderMLDashboard(ml) {
   const mlMethodologyCard = `
     <div class="prediction-info-card" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%); border: 1px solid rgba(99, 102, 241, 0.15); border-radius: var(--radius); padding: 18px; margin-bottom: 24px; position: relative; overflow: hidden; margin-top: 14px;">
       <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-        <span style="display:inline-flex; background:indigo; color:#fff; border-radius:50%; width:22px; height:22px; align-items:center; justify-content:center; font-size:12px;">🤖</span>
+        <span style="display:inline-flex; background:indigo; color:#fff; border-radius:50%; width:22px; height:22px; align-items:center; justify-content:center;">${svgWrap(ICON.chip, 12)}</span>
         <h4 style="margin:0; font-size:14px; font-weight:700; color:var(--text); font-family:var(--font-mono);">ANN Prediction Logic & Deep Ensemble Calibration</h4>
       </div>
       <p style="margin:0 0 10px 0; font-size:12px; color:var(--text-muted); line-height:1.6;">
-        Our Neural Network (MLP 8→16→10→1) maps multi-factor academic vectors to predict final outcomes. By combining current midterm scores and attendance with historical course group averages from your transcript, the engine delivers domain-specific forecasts. Zeros or missing components are dynamically imputed using your progress in similar subjects to maintain prediction realism.
+        Our Artificial Neural Network maps current midterm marks, attendance, and historical subject performance to predict final outcomes. Missing marks are dynamically imputed using similar course groups.
       </p>
       <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; font-size:11px;">
-        <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);"><span style="font-size:12px;">📂</span> <strong>Transcript:</strong> Blends historical subject GPA with network outputs</div>
-        <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);"><span style="font-size:12px;">📈</span> <strong>Progress:</strong> Uses credit load & overall CGPA baselines</div>
-        <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);"><span style="font-size:12px;">📝</span> <strong>Current Marks:</strong> Active midterm & quizzes/projects</div>
-        <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);"><span style="font-size:12px;">🧠</span> <strong>Ensemble Spread:</strong> Measures variance across 5 neural networks</div>
+        <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);">${svgWrap(ICON.file, 12)} <strong>Transcript:</strong> Blends historical subject GPA with network outputs</div>
+        <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);">${svgWrap(ICON.trend, 12)} <strong>Progress:</strong> Uses credit load & overall CGPA baselines</div>
+        <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);">${svgWrap(ICON.zap, 12)} <strong>Current Marks:</strong> Active midterm & quizzes/projects</div>
+        <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);">${svgWrap(ICON.layers, 12)} <strong>Ensemble Spread:</strong> Variance across 5 neural networks</div>
       </div>
     </div>
   `;
@@ -2104,9 +2104,9 @@ function renderMLDashboard(ml) {
     const componentMarks = `
       <div class="ml-component-marks" style="margin-top: 10px; margin-bottom: 12px; padding: 10px; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 11px; color: var(--text-muted); display:flex; flex-direction:column; gap:6px;">
         <div style="font-family:var(--font-mono); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:2px;">Course Components</div>
-        <div>📝 Midterm (20m): ${midHtml}</div>
-        <div>📊 Assessments (40m): ${assHtml}</div>
-        <div>🏁 Final Exam (40m): ${tagPending}</div>
+        <div>${svgWrap(ICON.calendar, 12)} Midterm (20m): ${midHtml}</div>
+        <div>${svgWrap(ICON.layers, 12)} Assessments (40m): ${assHtml}</div>
+        <div>${svgWrap(ICON.target, 12)} Final Exam (40m): ${tagPending}</div>
       </div>
     `;
 
