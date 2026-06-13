@@ -328,14 +328,27 @@ function mlBuildFeatures(course, ctx) {
 
   /* midterm / quizzes / project from the imported ExamResultMid data */
   let mid = null, quiz = null, proj = null;
+  let rawMid = null, rawQuiz = null, rawProj = null;
+  let midtermTotal = 20;
+
   {
     const m = findMatchingCourseItem(course, ctx.midterms, x => x.name, x => x.code);
     if (m) {
       /* IULMS shows 0 until a component is actually marked — treat 0 as
          "not yet marked" and impute, instead of punishing the student */
-      if (m.obtained != null && m.obtained > 0) mid = _mlClamp01(m.obtained / (m.total || 20));
-      if (m.quizzes != null && m.quizzes > 0) quiz = _mlClamp01(m.quizzes / 10);
-      if (m.project != null && m.project > 0) proj = _mlClamp01(m.project / 10);
+      if (m.obtained != null && m.obtained > 0) {
+        mid = _mlClamp01(m.obtained / (m.total || 20));
+        rawMid = m.obtained;
+        midtermTotal = m.total || 20;
+      }
+      if (m.quizzes != null && m.quizzes > 0) {
+        quiz = _mlClamp01(m.quizzes / 10);
+        rawQuiz = m.quizzes;
+      }
+      if (m.project != null && m.project > 0) {
+        proj = _mlClamp01(m.project / 10);
+        rawProj = m.project;
+      }
     }
   }
   /* attendance from the imported StudentAttendance data */
@@ -359,6 +372,7 @@ function mlBuildFeatures(course, ctx) {
   return {
     arr: Float64Array.from([mid, quiz, proj, att, cgpa, credits, isLab, level]),
     attendancePct: att, missing,
+    rawMid, rawQuiz, rawProj, midtermTotal
   };
 }
 
@@ -366,6 +380,15 @@ function mlBuildFeatures(course, ctx) {
 function mlPredictCourse(course, ctx) {
   const f = mlBuildFeatures(course, ctx);
   const raw = mlPredictRaw(f.arr);
+
+  const overallCGPA = ctx.cgpa != null ? ctx.cgpa : 2.5;
+  const relatedGPA = typeof getRelatedCoursePerformance === 'function'
+    ? getRelatedCoursePerformance(course, ctx.transcript || [], overallCGPA)
+    : overallCGPA;
+
+  // Blend 80% ANN prediction with 20% related GPA for enhanced accuracy
+  const finalGP = 0.8 * raw.gp + 0.2 * relatedGPA;
+
   let conf = Math.max(0.45, Math.min(0.97, 1 - raw.std / 1.1));
   /* widen uncertainty when inputs had to be assumed */
   conf -= 0.06 * f.missing.length;
@@ -374,15 +397,15 @@ function mlPredictCourse(course, ctx) {
   const pFail = raw.members.filter(p => p < 2.0).length / raw.members.length;
   const debar = f.attendancePct <= 0.75;   /* hard university rule */
   let risk = 'safe';
-  if (debar || raw.gp < 2.0 || pFail >= 0.5) risk = 'high';
-  else if (raw.gp < 2.4 || pFail >= 0.3 || f.attendancePct < 0.80) risk = 'watch';
+  if (debar || finalGP < 2.0 || pFail >= 0.5) risk = 'high';
+  else if (finalGP < 2.4 || pFail >= 0.3 || f.attendancePct < 0.80) risk = 'watch';
 
   return {
     code: course.code, name: course.name, credits: course.credits || 3,
-    gp: raw.gp, std: raw.std,
-    letter: mlGradeFromPoints(raw.gp),
-    low: mlGradeFromPoints(Math.max(0, raw.gp - raw.std)),
-    high: mlGradeFromPoints(Math.min(4, raw.gp + raw.std)),
+    gp: finalGP, std: raw.std,
+    letter: mlGradeFromPoints(finalGP),
+    low: mlGradeFromPoints(Math.max(0, finalGP - raw.std)),
+    high: mlGradeFromPoints(Math.min(4, finalGP + raw.std)),
     confidence: Math.round(conf * 100),
     pFail: Math.round(pFail * 100),
     risk, debar,
@@ -390,6 +413,11 @@ function mlPredictCourse(course, ctx) {
     missing: f.missing,
     factors: mlExplain(f.arr).slice(0, 4),
     features: Array.from(f.arr),
+    rawMid: f.rawMid,
+    rawQuiz: f.rawQuiz,
+    rawProj: f.rawProj,
+    midtermTotal: f.midtermTotal,
+    relatedGPA
   };
 }
 
@@ -402,7 +430,7 @@ function mlPredictAllLocal(st) {
   const cgpa = st.transcriptGPA != null ? st.transcriptGPA
     : (typeof computeTranscriptStats === 'function' && st.transcript && st.transcript.length
       ? computeTranscriptStats(st.transcript).cgpaRaw : null);
-  const ctx = { midterms: st.midterms, attendance: st.attendance, cgpa };
+  const ctx = { midterms: st.midterms, attendance: st.attendance, cgpa, transcript: st.transcript };
   const courses = mlCoursesFromState(st).map(c => mlPredictCourse(c, ctx));
 
   /* credit-weighted semester GPA prediction */
@@ -470,10 +498,16 @@ async function mlPredictAll(st) {
           if (data && data.predictions && data.predictions.length === rows.length) {
             data.predictions.forEach((p, i) => {
               const c = local.courses[i];
-              c.gp = p.gp; c.std = p.std;
-              c.letter = mlGradeFromPoints(p.gp);
-              c.low = mlGradeFromPoints(Math.max(0, p.gp - p.std));
-              c.high = mlGradeFromPoints(Math.min(4, p.gp + p.std));
+              const overallCGPA = local.cgpa != null ? local.cgpa : 2.5;
+              const relatedGPA = typeof getRelatedCoursePerformance === 'function'
+                ? getRelatedCoursePerformance(c, st.transcript || [], overallCGPA)
+                : overallCGPA;
+              // Blend 80% VPS ANN prediction with 20% related GPA for enhanced accuracy
+              const blendedGP = 0.8 * p.gp + 0.2 * relatedGPA;
+              c.gp = blendedGP; c.std = p.std;
+              c.letter = mlGradeFromPoints(blendedGP);
+              c.low = mlGradeFromPoints(Math.max(0, blendedGP - p.std));
+              c.high = mlGradeFromPoints(Math.min(4, blendedGP + p.std));
               c.confidence = Math.max(40, Math.min(97, Math.round((1 - p.std / 1.1) * 100) - 6 * c.missing.length));
             });
             /* recompute aggregates with API numbers */

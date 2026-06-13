@@ -437,6 +437,82 @@ function findMatchingCourseItem(course, list, getName, getCode) {
   return exact || fallback;
 }
 
+/* ── Helper to calculate performance in related completed courses from transcript ── */
+function getRelatedCoursePerformance(course, transcript, overallCGPA) {
+  if (!transcript || transcript.length === 0) return overallCGPA != null ? overallCGPA : 2.5;
+
+  const codeUp = (course.code || '').toUpperCase().trim();
+  const nameUp = (course.name || '').toUpperCase().trim();
+  const prefix = (course.code || '').match(/^[A-Za-z]+/)?.[0]?.toUpperCase() || '';
+
+  // Extract key keywords from course name
+  const keywords = [];
+  if (nameUp.includes('PROGRAMMING') || nameUp.includes('DATA STRUCTURE') || nameUp.includes('OBJECT ORIENTED') || nameUp.includes('ALGORITHM')) {
+    keywords.push('programming_ds');
+  }
+  if (nameUp.includes('MATH') || nameUp.includes('CALCULUS') || nameUp.includes('ALGEBRA') || nameUp.includes('STATISTICS') || nameUp.includes('PROBABILITY')) {
+    keywords.push('math');
+  }
+  if (nameUp.includes('SOFTWARE') || nameUp.includes('ENGINEERING') || nameUp.includes('CONSTRUCTION') || nameUp.includes('REQUIREMENT')) {
+    keywords.push('se_core');
+  }
+  if (nameUp.includes('DATABASE') || nameUp.includes('SQL') || nameUp.includes('INFORMATION SYSTEM')) {
+    keywords.push('db');
+  }
+  if (nameUp.includes('ENGLISH') || nameUp.includes('WRITING') || nameUp.includes('COMMUNICATION')) {
+    keywords.push('english_comm');
+  }
+
+  let totalPoints = 0, count = 0;
+
+  for (const t of transcript) {
+    const tCode = (t.code || '').toUpperCase();
+    const tName = (t.title || '').toUpperCase();
+    const tGrade = (t.grade || '').toUpperCase();
+    const tPoints = t.points != null ? t.points : GRADE_POINTS[tGrade];
+
+    if (tPoints == null || tGrade === 'W' || tGrade === 'I' || tGrade === 'NC') continue;
+
+    // Don't match the current course itself
+    if (tCode === codeUp) continue;
+
+    let isRelated = false;
+
+    // Check code prefix match (e.g. SEN101 and SEN232 both have 'SEN' prefix)
+    const tPrefix = tCode.match(/^[A-Za-z]+/)?.[0]?.toUpperCase() || '';
+    if (prefix && tPrefix && prefix === tPrefix) {
+      isRelated = true;
+    }
+
+    // Check keyword match
+    if (!isRelated) {
+      if (keywords.includes('programming_ds') && (tName.includes('PROGRAMMING') || tName.includes('DATA STRUCTURE') || tName.includes('OBJECT ORIENTED') || tName.includes('ALGORITHM'))) {
+        isRelated = true;
+      } else if (keywords.includes('math') && (tName.includes('MATH') || tName.includes('CALCULUS') || tName.includes('ALGEBRA') || tName.includes('STATISTICS') || tName.includes('PROBABILITY'))) {
+        isRelated = true;
+      } else if (keywords.includes('se_core') && (tName.includes('SOFTWARE') || tName.includes('ENGINEERING') || tName.includes('CONSTRUCTION') || tName.includes('REQUIREMENT'))) {
+        isRelated = true;
+      } else if (keywords.includes('db') && (tName.includes('DATABASE') || tName.includes('SQL') || tName.includes('INFORMATION SYSTEM'))) {
+        isRelated = true;
+      } else if (keywords.includes('english_comm') && (tName.includes('ENGLISH') || tName.includes('WRITING') || tName.includes('COMMUNICATION'))) {
+        isRelated = true;
+      }
+    }
+
+    if (isRelated) {
+      totalPoints += tPoints;
+      count++;
+    }
+  }
+
+  if (count > 0) {
+    return totalPoints / count;
+  }
+
+  // Fallback to overall transcript CGPA if no related course found, then fallback to 2.5
+  return overallCGPA != null ? overallCGPA : 2.5;
+}
+
 /* ── Predict end-of-semester CGPA ── */
 function predictSemesterOutcome(transcript, midterms, currentCourses) {
   // 1. Get past stats. If transcript is empty, fallback to the main course list estimate!
@@ -448,13 +524,13 @@ function predictSemesterOutcome(transcript, midterms, currentCourses) {
   if (pastTrans && pastTrans.totalCredits > 0) {
     pastPoints = pastTrans.totalPoints;
     pastCredits = pastTrans.totalCredits;
-    pastCGPA = pastTrans.cgpa;
+    pastCGPA = pastTrans.cgpaRaw; // Use raw float
   } else {
     const stats = computeStats(currentCourses || []);
     if (stats && stats.gpa) {
-      pastCGPA = stats.gpa;
+      pastCGPA = parseFloat(stats.gpa);
       pastCredits = stats.completedCredits;
-      pastPoints = parseFloat(stats.gpa) * pastCredits; // Reverse engineer the points
+      pastPoints = pastCGPA * pastCredits; // Reverse engineer the points
     }
   }
 
@@ -470,26 +546,39 @@ function predictSemesterOutcome(transcript, midterms, currentCourses) {
     const mData = m || {};
 
     const expected = pct != null ? predictGradeFromPct(pct) : null;
-    let optimisticPt = expected ? Math.min(4.0, expected.point + 0.3) : 3.0;
-    let pessimisticPt = expected ? Math.max(0.0, expected.point - 0.7) : 1.7;
+    
+    // Calculate performance in related courses
+    const overallCGPAVal = pastCGPA != null ? parseFloat(pastCGPA) : null;
+    const relatedGPA = getRelatedCoursePerformance(c, transcript, overallCGPAVal);
 
-    if (!expected) {
-      return {
-        code: c.code, name: c.name, credits: c.credits,
-        midtermPct: null, midtermRaw: null, midtermTotal: 20, quizzes: null, project: null, expected: null,
-        expectedPt: 3.0, optimisticPt: 4.0, pessimisticPt: 2.0,
-      };
+    let expectedPt, optimisticPt, pessimisticPt;
+    if (expected) {
+      // Blend 70% midterm with 30% related GPA for better accuracy
+      expectedPt = 0.7 * expected.point + 0.3 * relatedGPA;
+      optimisticPt = Math.min(4.0, expectedPt + 0.3);
+      pessimisticPt = Math.max(0.0, expectedPt - 0.7);
+    } else {
+      // Midterm not uploaded yet: predict purely based on related courses
+      expectedPt = relatedGPA;
+      optimisticPt = Math.min(4.0, expectedPt + 0.4);
+      pessimisticPt = Math.max(0.0, expectedPt - 0.8);
     }
+
     return {
-      code: c.code, name: c.name, credits: c.credits,
+      code: c.code,
+      name: c.name,
+      credits: c.credits,
       midtermPct: pct,
-      midtermRaw: mData.obtained,
+      midtermRaw: (mData.obtained !== undefined && mData.obtained !== null) ? mData.obtained : null,
       midtermTotal: mData.total || 20,
-      quizzes: mData.quizzes,
-      project: mData.project,
-      expected: expected.grade,
-      expectedPt: expected.point,
-      optimisticPt, pessimisticPt,
+      quizzes: (mData.quizzes !== undefined && mData.quizzes !== null) ? mData.quizzes : null,
+      project: (mData.project !== undefined && mData.project !== null) ? mData.project : null,
+      expected: nearestLetterFor(expectedPt),
+      expectedPt,
+      optimisticPt,
+      pessimisticPt,
+      isMidtermUploaded: pct != null,
+      relatedGPA: relatedGPA
     };
   });
 

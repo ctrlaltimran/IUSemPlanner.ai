@@ -135,7 +135,7 @@ function renderLogin() {
       <div class="login-wrap">
 
         <div style="text-align:center;margin-bottom:16px;">
-          <div class="login-pill">v2.4.1 · AI for everyone · one-click IULMS import</div>
+          <div class="login-pill">v2.4.2 · AI for everyone · one-click IULMS import</div>
         </div>
 
         <div class="hero-split">
@@ -1600,37 +1600,70 @@ function renderDashboard() {
   /* ── Midterm-based CGPA prediction panel ── */
   let predictionPanel = '';
   if (prediction.scenarios && prediction.semesterPredictions.length > 0) {
+    const methodologyCard = `
+      <div class="prediction-info-card" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%); border: 1px solid rgba(99, 102, 241, 0.15); border-radius: var(--radius); padding: 18px; margin: 12px 14px; position: relative; overflow: hidden;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+          <span style="display:inline-flex; background:var(--accent); color:#fff; border-radius:50%; width:22px; height:22px; align-items:center; justify-content:center; font-size:12px;">🧠</span>
+          <h4 style="margin:0; font-size:14px; font-weight:700; color:var(--text); font-family:var(--font-mono);">Predictive Grade & CGPA Logic</h4>
+        </div>
+        <p style="margin:0 0 10px 0; font-size:12px; color:var(--text-muted); line-height:1.6;">
+          To forecast your end-of-semester GPA and grades, our models analyze both historical and current academic indicators. If components (like midterms or assignments) are not yet uploaded, the engine utilizes your historical transcript performance in related course categories as a strong prior indicator.
+        </p>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; font-size:11px;">
+          <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);"><span style="font-size:12px;">📂</span> <strong>Transcript:</strong> Prior CGPA & related course average</div>
+          <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);"><span style="font-size:12px;">📈</span> <strong>Progress:</strong> Historical trend & performance baseline</div>
+          <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);"><span style="font-size:12px;">📝</span> <strong>Current Marks:</strong> Active midterm & quizzes/projects</div>
+          <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);"><span style="font-size:12px;">🤖</span> <strong>ML/ANN Calibration:</strong> Multi-factor category weightings</div>
+        </div>
+      </div>
+    `;
+
     const courseRows = prediction.semesterPredictions.map(p => {
       let currentMarks = p.midtermRaw || 0;
       let remainingPool = 80; // 100 total - 20 midterm
-      let extraMarks = '';
 
-      // 1. Calculate Quizzes and Projects
-      if (p.quizzes !== undefined || p.project !== undefined) {
-        const q = (p.quizzes != null && p.quizzes > 0) ? p.quizzes : 0;
-        const pr = (p.project != null && p.project > 0) ? p.project : 0;
+      const tagPending = `<span class="badge-pending" style="font-size:10px; font-weight:600; color:#d97706; background:#fffbeb; padding:2px 6px; border-radius:4px; border:1px solid #fde68a; font-family:var(--font-mono); display:inline-block; line-height:1; vertical-align:middle; margin-left:4px;">Not uploaded yet</span>`;
 
-        if (q > 0) { currentMarks += q; remainingPool -= 20; }
-        if (pr > 0) { currentMarks += pr; remainingPool -= 20; }
+      // 1. Midterm Component
+      const midHtml = p.midtermPct != null
+        ? `<strong style="color:var(--text);">${p.midtermRaw}/${p.midtermTotal || 20} (${p.midtermPct.toFixed(0)}%)</strong>`
+        : tagPending;
 
-        const qTxt = q > 0 ? q : 'not marked';
-        const prTxt = pr > 0 ? pr : 'not marked';
-        extraMarks = `<div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Quizzes/Ass: <strong style="color:var(--text)">${qTxt}</strong> · Project: <strong style="color:var(--text)">${prTxt}</strong></div>`;
+      // 2. Assessments Component
+      const qVal = (p.quizzes != null && p.quizzes > 0) ? p.quizzes : null;
+      const prVal = (p.project != null && p.project > 0) ? p.project : null;
+      let assHtml = '';
+      if (qVal != null || prVal != null) {
+        const qTxt = qVal != null ? `${qVal}/10` : tagPending;
+        const prTxt = prVal != null ? `${prVal}/10` : tagPending;
+        assHtml = `Quizzes: <strong style="color:var(--text);">${qTxt}</strong> · Project: <strong style="color:var(--text);">${prTxt}</strong>`;
+        if (qVal > 0) { currentMarks += qVal; remainingPool -= 20; }
+        if (prVal > 0) { currentMarks += prVal; remainingPool -= 20; }
+      } else {
+        assHtml = tagPending;
       }
 
-      // 2. The 40-Mark Final Target Calculator
+      const componentMarks = `
+        <div class="component-marks-list" style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--text-muted);">
+          <div>📝 Midterm (20m): ${midHtml}</div>
+          <div>📊 Assessments (40m): ${assHtml}</div>
+          <div>🏁 Final Exam (40m): ${tagPending}</div>
+        </div>
+      `;
+
+      // 3. The 40-Mark Final Target Calculator
       let finalsNote = '';
-      if (p.expected && typeof MIDTERM_TO_GRADE_BANDS !== 'undefined') {
+      if (p.expectedPt && typeof MIDTERM_TO_GRADE_BANDS !== 'undefined') {
         const band = MIDTERM_TO_GRADE_BANDS.find(b => b.grade === p.expected);
         if (band) {
           const neededForExpected = Math.max(0, band.min - currentMarks);
 
           if (neededForExpected <= 0) {
-            finalsNote = `<div style="font-size:11px; color:#1e2a78; margin-top:4px; font-weight:600;">✨ Secured a ${p.expected} already!</div>`;
+            finalsNote = `<div style="font-size:11px; color:#10b981; margin-top:6px; font-weight:600;">✨ Secured a ${p.expected} already!</div>`;
           } else if (remainingPool === 40) {
-            finalsNote = `<div style="font-size:11px; color:#d97706; margin-top:4px; font-weight:600; background:#fffbeb; padding:2px 6px; border-radius:4px; display:inline-block; border:1px solid #fde68a;">🎯 Need ${neededForExpected}/40 on Final for a ${p.expected}</div>`;
+            finalsNote = `<div style="font-size:11px; color:#d97706; margin-top:6px; font-weight:600; background:rgba(217,119,6,0.06); padding:4px 8px; border-radius:6px; display:inline-block; border:1px solid rgba(217,119,6,0.15);">${p.isMidtermUploaded ? `🎯 Need <strong>${neededForExpected}</strong>/40 on Final for a ${p.expected}` : `🎯 Est. final target: <strong>${neededForExpected}</strong>/40 for a ${p.expected}`}</div>`;
           } else {
-            finalsNote = `<div style="font-size:11px; color:var(--accent); margin-top:4px; font-weight:500;">Need ${neededForExpected} more marks (out of ${remainingPool} remaining) for a ${p.expected}</div>`;
+            finalsNote = `<div style="font-size:11px; color:var(--accent); margin-top:6px; font-weight:500;">Need ${neededForExpected} more marks (out of ${remainingPool} remaining) for a ${p.expected}</div>`;
           }
         }
       }
@@ -1640,13 +1673,13 @@ function renderDashboard() {
           <div class="pred-info">
             <div class="pred-code">${esc(p.code)}</div>
             <div class="pred-name">${esc(p.name)}</div>
-            ${extraMarks}
+            ${componentMarks}
             ${finalsNote}
           </div>
           <div class="pred-mid">
             ${p.midtermPct != null
           ? `<div class="pred-mid-val">${p.midtermRaw}/${p.midtermTotal || 20}</div><div class="pred-mid-lbl">${p.midtermPct.toFixed(0)}%</div>`
-          : `<div class="pred-mid-val muted">—</div><div class="pred-mid-lbl">no midterm</div>`}
+          : `<div style="font-size:10px; font-weight:600; color:#d97706; background:#fffbeb; padding:4px 6px; border-radius:4px; border:1px solid #fde68a; font-family:var(--font-mono); text-align:center; display:inline-block; line-height:1.2;">Not uploaded</div>`}
           </div>
           <div class="pred-grades">
             <span class="pred-grade pess">${nearestLetterFor(p.pessimisticPt)}</span>
@@ -1663,6 +1696,7 @@ function renderDashboard() {
             <div class="panel-title">${svgWrap(ICON.trend)}CGPA forecast</div>
             <div class="panel-meta">based on ${prediction.semesterPredictions.length} current course${prediction.semesterPredictions.length > 1 ? 's' : ''} · ${prediction.semCredits} cr</div>
           </div>
+          ${methodologyCard}
           <div class="scenario-grid">
             <div class="scenario-card pess">
               <div class="scenario-label">pessimistic</div>
@@ -2033,42 +2067,86 @@ function renderMLDashboard(ml) {
   const wi = ml.whatIf || { idx: 0, att: 85, mid: 14, quiz: 7 };
   const riskName = { high: 'HIGH RISK', watch: 'WATCH', safe: 'ON TRACK' };
 
-  const courseCards = r.courses.map((c) => `
-    <div class="ml-course">
-      <div class="ml-course-head">
-        <div>
-          <div class="ml-course-code">${esc(c.code)}</div>
-          <div class="ml-course-name">${esc(c.name)}</div>
-        </div>
-        <span class="ml-risk ${c.risk}">${c.debar ? 'DEBAR RISK' : riskName[c.risk]}</span>
+  const mlMethodologyCard = `
+    <div class="prediction-info-card" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%); border: 1px solid rgba(99, 102, 241, 0.15); border-radius: var(--radius); padding: 18px; margin-bottom: 24px; position: relative; overflow: hidden; margin-top: 14px;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+        <span style="display:inline-flex; background:indigo; color:#fff; border-radius:50%; width:22px; height:22px; align-items:center; justify-content:center; font-size:12px;">🤖</span>
+        <h4 style="margin:0; font-size:14px; font-weight:700; color:var(--text); font-family:var(--font-mono);">ANN Prediction Logic & Deep Ensemble Calibration</h4>
       </div>
-      <div class="ml-pred-row">
-        <div class="ml-letter">${c.letter}</div>
-        <div class="ml-pred-meta">
-          <div class="ml-gp">Predicted: ${c.gp.toFixed(2)} GP</div>
-          <div class="ml-range">Expected: ${c.low} to ${c.high}</div>
-        </div>
+      <p style="margin:0 0 10px 0; font-size:12px; color:var(--text-muted); line-height:1.6;">
+        Our Neural Network (MLP 8→16→10→1) maps multi-factor academic vectors to predict final outcomes. By combining current midterm scores and attendance with historical course group averages from your transcript, the engine delivers domain-specific forecasts. Zeros or missing components are dynamically imputed using your progress in similar subjects to maintain prediction realism.
+      </p>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; font-size:11px;">
+        <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);"><span style="font-size:12px;">📂</span> <strong>Transcript:</strong> Blends historical subject GPA with network outputs</div>
+        <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);"><span style="font-size:12px;">📈</span> <strong>Progress:</strong> Uses credit load & overall CGPA baselines</div>
+        <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);"><span style="font-size:12px;">📝</span> <strong>Current Marks:</strong> Active midterm & quizzes/projects</div>
+        <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted);"><span style="font-size:12px;">🧠</span> <strong>Ensemble Spread:</strong> Measures variance across 5 neural networks</div>
       </div>
-      <div class="ml-conf-row">
-        <span class="ml-conf-label">Prediction confidence</span>
-        <div class="ml-conf-bar"><div style="width:${c.confidence}%"></div></div>
-        <span class="ml-conf-val">${c.confidence}%</span>
-      </div>
-      <div class="ml-factors">
-        <div class="ml-factors-title">Key impact factors</div>
-        ${c.factors.map(f => {
-    const w = Math.min(100, Math.abs(f.delta) / 1.2 * 100);
-    return `<div class="ml-factor">
-            <span class="ml-factor-name">${esc(f.label)} <b>${esc(f.value)}</b></span>
-            <div class="ml-factor-bar ${f.delta >= 0 ? 'pos' : 'neg'}"><div style="width:${Math.max(6, w)}%"></div></div>
-            <span class="ml-factor-delta ${f.delta >= 0 ? 'pos' : 'neg'}">${f.delta >= 0 ? '+' : ''}${f.delta.toFixed(2)} GP</span>
-          </div>`;
-  }).join('')}
-      </div>
-      ${c.debar ? `<div class="ml-flag">⚠ Attendance is below the 75% limit. Debar rule applies regardless of grade forecast.</div>` : ''}
-      ${c.missing.length ? `<div class="ml-imputed">Some assessments (${c.missing.join(', ')}) are estimated because they are not yet posted on LMS.</div>` : ''}
     </div>
-  `).join('');
+  `;
+
+  const courseCards = r.courses.map((c) => {
+    const tagPending = `<span class="badge-pending" style="font-size:10px; font-weight:600; color:#d97706; background:#fffbeb; padding:2px 6px; border-radius:4px; border:1px solid #fde68a; font-family:var(--font-mono); display:inline-block; line-height:1; vertical-align:middle; margin-left:4px;">Not uploaded yet</span>`;
+
+    const midHtml = c.rawMid != null
+      ? `<strong style="color:var(--text);">${c.rawMid}/${c.midtermTotal || 20}</strong>`
+      : tagPending;
+
+    let assHtml = '';
+    if (c.rawQuiz != null || c.rawProj != null) {
+      const qTxt = c.rawQuiz != null ? `${c.rawQuiz}/10` : tagPending;
+      const prTxt = c.rawProj != null ? `${c.rawProj}/10` : tagPending;
+      assHtml = `Quizzes: <strong style="color:var(--text);">${qTxt}</strong> · Project: <strong style="color:var(--text);">${prTxt}</strong>`;
+    } else {
+      assHtml = tagPending;
+    }
+
+    const componentMarks = `
+      <div class="ml-component-marks" style="margin-top: 10px; margin-bottom: 12px; padding: 10px; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 11px; color: var(--text-muted); display:flex; flex-direction:column; gap:6px;">
+        <div style="font-family:var(--font-mono); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:2px;">Course Components</div>
+        <div>📝 Midterm (20m): ${midHtml}</div>
+        <div>📊 Assessments (40m): ${assHtml}</div>
+        <div>🏁 Final Exam (40m): ${tagPending}</div>
+      </div>
+    `;
+
+    return `
+      <div class="ml-course">
+        <div class="ml-course-head">
+          <div>
+            <div class="ml-course-code">${esc(c.code)}</div>
+            <div class="ml-course-name">${esc(c.name)}</div>
+          </div>
+          <span class="ml-risk ${c.risk}">${c.debar ? 'DEBAR RISK' : riskName[c.risk]}</span>
+        </div>
+        <div class="ml-pred-row">
+          <div class="ml-letter">${c.letter}</div>
+          <div class="ml-pred-meta">
+            <div class="ml-gp">Predicted: ${c.gp.toFixed(2)} GP</div>
+            <div class="ml-range">Expected: ${c.low} to ${c.high}</div>
+          </div>
+        </div>
+        ${componentMarks}
+        <div class="ml-conf-row">
+          <span class="ml-conf-label">Prediction confidence</span>
+          <div class="ml-conf-bar"><div style="width:${c.confidence}%"></div></div>
+          <span class="ml-conf-val">${c.confidence}%</span>
+        </div>
+        <div class="ml-factors">
+          <div class="ml-factors-title">Key impact factors</div>
+          ${c.factors.map(f => {
+            const w = Math.min(100, Math.abs(f.delta) / 1.2 * 100);
+            return `<div class="ml-factor">
+              <span class="ml-factor-name">${esc(f.label)} <b>${esc(f.value)}</b></span>
+              <div class="ml-factor-bar ${f.delta >= 0 ? 'pos' : 'neg'}"><div style="width:${Math.max(6, w)}%"></div></div>
+              <span class="ml-factor-delta ${f.delta >= 0 ? 'pos' : 'neg'}">${f.delta >= 0 ? '+' : ''}${f.delta.toFixed(2)} GP</span>
+            </div>`;
+          }).join('')}
+        </div>
+        ${c.debar ? `<div class="ml-flag">⚠ Attendance is below the 75% limit. Debar rule applies regardless of grade forecast.</div>` : ''}
+        ${c.missing.length ? `<div class="ml-imputed">Some assessments (${c.missing.join(', ')}) are estimated because they are not yet posted on LMS.</div>` : ''}
+      </div>`;
+  }).join('');
 
   const wiCourse = r.courses[wi.idx];
   const wiInit = wiCourse ? mlWhatIf((() => { const f = wiCourse.features.slice(); f[0] = wi.mid / 20; f[1] = wi.quiz / 10; f[3] = wi.att / 100; return f; })()) : mlWhatIf([wi.mid / 20, wi.quiz / 10, 0.5, wi.att / 100, 0.65, 0.75, 0, 0.5]);
@@ -2106,6 +2184,8 @@ function renderMLDashboard(ml) {
           <div class="ml-stat-hint">Analyzes 8 performance factors</div>
         </div>
       </div>
+
+      ${mlMethodologyCard}
 
       ${r.courses.length ? `<div class="ml-grid">${courseCards}</div>` : `
         <div class="empty-state" style="margin-top:14px">
