@@ -118,7 +118,7 @@ function renderHomeFooter() {
             <a href="https://ctrlaltimran.com" target="_blank" rel="noopener" class="hf-link">'ctrlaltimran.com'</a>;
           </span>
           <span class="home-footer-made">
-            Built for Web Engineering · Sir Muhammad Farhan · by Syed Imran Murtaza (65196) &amp; M. Raza (63234)
+            Built for Web Engineering · Sir Rizwan Ahmed · by Syed Imran Murtaza (65196) &amp; M. Sherhreyar (65193) & Saira Bibi (67859)
           </span>
         </div>
         <p class="home-footer-disclaimer" style="font-size: 11px; color: var(--text-faint); line-height: 1.6; max-width: 1000px; font-family: var(--font-mono); margin: 0; text-align: justify; width: 100%;">
@@ -141,7 +141,7 @@ function renderLogin() {
         <div class="hero-split">
           <div class="hero-left">
             <h1 class="hero-headline" style="font-family: 'JetBrains Mono', monospace; font-size: clamp(28px, 4vw, 50px); letter-spacing: -0.02em; line-height: 1.4; color: #111827;">
-              GIVING IULMS <img src="./media/iui.png" style="height: 1.5em; vertical-align: middle; margin: 0 -0.35em; position: relative; top: 0.04em; border-radius: 4px;" alt="IULMS"> ITS AI-LEVEL <em>UPDATE</em> SINCE DINOSAURS <img src="./media/ino.png" style="height: 1.4em; vertical-align: middle; margin: 0 -0.2em; position: relative; top: 0; border-radius: 4px;" alt="dinosaurs">.
+              GIVING IULMS <img src="./media/iui.png" style="height: 1.5em; vertical-align: middle; margin: 0 -0.35em; position: relative; top: 0.04em; border-radius: 4px;" alt="IULMS"> GETS AN AI <em>UPDATE</em> BEFORE GTA VI>.
             </h1>
             <p class="hero-body">
               Courses · transcript · attendance · weekly schedule · midterm results · exam dates —
@@ -1621,7 +1621,7 @@ function renderDashboard() {
     const courseRows = prediction.semesterPredictions.map(p => {
       let currentMarks = p.midtermRaw || 0;
       let remainingPool = 80; // 100 total - 20 midterm
-      
+
       const tagPending = `<span class="badge-pending" style="font-size:10px; font-weight:600; color:#d97706; background:#fffbeb; padding:2px 6px; border-radius:4px; border:1px solid #fde68a; font-family:var(--font-mono); display:inline-block; line-height:1; vertical-align:middle; margin-left:4px;">Not uploaded yet</span>`;
 
       // 1. Midterm Component
@@ -2135,13 +2135,13 @@ function renderMLDashboard(ml) {
         <div class="ml-factors">
           <div class="ml-factors-title">Key impact factors</div>
           ${c.factors.map(f => {
-            const w = Math.min(100, Math.abs(f.delta) / 1.2 * 100);
-            return `<div class="ml-factor">
+      const w = Math.min(100, Math.abs(f.delta) / 1.2 * 100);
+      return `<div class="ml-factor">
               <span class="ml-factor-name">${esc(f.label)} <b>${esc(f.value)}</b></span>
               <div class="ml-factor-bar ${f.delta >= 0 ? 'pos' : 'neg'}"><div style="width:${Math.max(6, w)}%"></div></div>
               <span class="ml-factor-delta ${f.delta >= 0 ? 'pos' : 'neg'}">${f.delta >= 0 ? '+' : ''}${f.delta.toFixed(2)} GP</span>
             </div>`;
-          }).join('')}
+    }).join('')}
         </div>
         ${c.debar ? `<div class="ml-flag">⚠ Attendance is below the 75% limit. Debar rule applies regardless of grade forecast.</div>` : ''}
         ${c.missing.length ? `<div class="ml-imputed">Some assessments (${c.missing.join(', ')}) are estimated because they are not yet posted on LMS.</div>` : ''}
