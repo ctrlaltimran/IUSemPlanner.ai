@@ -141,7 +141,7 @@ function renderLogin() {
         <div class="hero-split">
           <div class="hero-left">
             <h1 class="hero-headline" style="font-family: 'JetBrains Mono', monospace; font-size: clamp(28px, 4vw, 50px); letter-spacing: -0.02em; line-height: 1.4; color: #111827;">
-              GIVING IULMS <img src="./media/iui.png" style="height: 1.5em; vertical-align: middle; margin: 0 -0.35em; position: relative; top: 0.04em; border-radius: 4px;" alt="IULMS"> GETS AN AI <em>UPDATE</em> BEFORE GTA VI>.
+              IULMS <img src="./media/iui.png" style="height: 1.5em; vertical-align: middle; margin: 0 -0.35em; position: relative; top: 0.04em; border-radius: 4px;" alt="IULMS"> GETS AN AI <em>UPDATE</em> BEFORE GTA VI <img src="./media/ino.png" style="height: 1.4em; vertical-align: middle; margin: 0 -0.2em; position: relative; top: 0; border-radius: 4px;" alt="dinosaurs">.
             </h1>
             <p class="hero-body">
               Courses · transcript · attendance · weekly schedule · midterm results · exam dates —
