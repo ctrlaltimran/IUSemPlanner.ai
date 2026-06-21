@@ -118,7 +118,7 @@ function renderHomeFooter() {
             <a href="https://ctrlaltimran.com" target="_blank" rel="noopener" class="hf-link">'ctrlaltimran.com'</a>;
           </span>
           <span class="home-footer-made">
-            Built for Web Engineering · Sir Rizwan Ahmed · by Syed Imran Murtaza (65196) &amp; M. Sherhreyar (65193) & Saira Bibi (67859)
+            Built for Web Engineering · Sir Farhan · by Syed Imran Murtaza (65196) &amp; M. Raza 63234
           </span>
         </div>
         <p class="home-footer-disclaimer" style="font-size: 11px; color: var(--text-faint); line-height: 1.6; max-width: 1000px; font-family: var(--font-mono); margin: 0; text-align: justify; width: 100%;">
@@ -141,7 +141,7 @@ function renderLogin() {
         <div class="hero-split">
           <div class="hero-left">
             <h1 class="hero-headline" style="font-family: 'JetBrains Mono', monospace; font-size: clamp(28px, 4vw, 50px); letter-spacing: -0.02em; line-height: 1.4; color: #111827;">
-              IULMS <img src="./media/iui.png" style="height: 1.5em; vertical-align: middle; margin: 0 -0.35em; position: relative; top: 0.04em; border-radius: 4px;" alt="IULMS"> GETS AN AI <em>UPDATE</em> BEFORE GTA VI <img src="./media/ino.png" style="height: 1.4em; vertical-align: middle; margin: 0 -0.2em; position: relative; top: 0; border-radius: 4px;" alt="dinosaurs">.
+              IULMS <img src="./media/iui.png" style="height: 1.5em; vertical-align: middle; margin: 0 -0.35em; position: relative; top: 0.04em; border-radius: 4px;" alt="IULMS"> GETS AN AI <em>UPDATE</em> BEFORE GTA VI <img src="./media/gta.png" style="height: 1.4em; vertical-align: middle; margin: 0 -0.2em; position: relative; top: 0; border-radius: 4px;" alt="dinosaurs">.
             </h1>
             <p class="hero-body">
               Courses · transcript · attendance · weekly schedule · midterm results · exam dates —
